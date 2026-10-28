@@ -1,0 +1,8 @@
+.env
+storage/logs/*
+storage/cache/*
+storage/private_uploads/*
+public/assets/uploads/*
+!.gitkeep
+node_modules/
+.DS_Store

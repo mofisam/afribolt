@@ -1,0 +1,7 @@
+# Fallback: if the document root is the project folder, forward into /public.
+# Best practice is to point the document root at /public directly.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^$ public/ [L]
+    RewriteRule (.*) public/$1 [L]
+</IfModule>

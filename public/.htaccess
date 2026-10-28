@@ -1,0 +1,20 @@
+Options -Indexes
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    # Serve real files (css/js/img) directly, everything else goes to index.php
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.php [L]
+</IfModule>
+
+# Never expose dotfiles
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+# Basic security headers (tighten CSP once your asset sources are final)
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
