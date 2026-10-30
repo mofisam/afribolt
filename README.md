@@ -98,6 +98,10 @@ New in this update: set `APP_KEY` in `.env` (needed only if you store meeting pa
 - Deposit/instalment payment plans are not offered at checkout (the cohort form hides that setting).
 - Instructors have no self-service password reset yet (admin sets the password).
 
+## Policy pages (FAQ, Privacy, Terms, Refunds)
+
+Drafted from how the platform actually behaves (seat confirmed only after payment verification, join window, waitlist, card data never stored). The *business* terms are proposals, **not legal advice**: refund windows and percentages, retention periods, minimum age, governing law, hosting location. While `LEGAL_DRAFT=true` in `.env`, each of these is highlighted in yellow with a "Draft for review" banner. Get the client (and ideally a Nigerian lawyer) to confirm them, edit the wording in `app/Views/public/pages/`, then set `LEGAL_DRAFT=false` to remove the highlights and banner. FAQ answers live in `PageController::faq()`.
+
 ## Before going live
 
 - Document root must be `public/` (the root `.htaccess` is only a fallback). Serve over HTTPS.
