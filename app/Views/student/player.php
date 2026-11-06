@@ -113,6 +113,22 @@ $n = 0;
   </aside>
 </div>
 </div>
+<script>
+// Tabs work even if player.js fails to load.
+(function () {
+  var tabs = [].slice.call(document.querySelectorAll('#player [role=tab]'));
+  if (!tabs.length) return;
+  function show(t) { tabs.forEach(function (x) { var on = x === t; x.setAttribute('aria-selected', String(on)); x.tabIndex = on ? 0 : -1; var p = document.getElementById(x.getAttribute('aria-controls')); if (p) p.hidden = !on; }); }
+  tabs.forEach(function (t, i) {
+    t.addEventListener('click', function () { show(t); });
+    t.addEventListener('keydown', function (e) {
+      var n = e.key === 'ArrowRight' ? tabs[(i + 1) % tabs.length] : e.key === 'ArrowLeft' ? tabs[(i - 1 + tabs.length) % tabs.length] : null;
+      if (n) { e.preventDefault(); n.focus(); show(n); }
+    });
+  });
+  if (location.hash === '#reviews') show(document.getElementById('tab-reviews'));
+})();
+</script>
 <script src="<?= e(asset('js/app.js')) ?>" defer></script>
 <script src="<?= e(asset('js/player.js')) ?>" defer></script>
 </body>

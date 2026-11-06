@@ -148,7 +148,7 @@ class LearningController extends Controller
         CourseCatalogService::refresh((int) $course['id']);
         Session::flash('success', 'Thanks for your review!');
         $last = (int) Database::value('SELECT last_lesson_id FROM course_access WHERE user_id = ? AND course_id = ?', [$uid, (int) $course['id']]);
-        $this->redirect('/learn/' . $slug . ($last ? '/' . $last : ''));
+        $this->redirect('/learn/' . $slug . ($last ? '/' . $last : '') . '#reviews');
     }
 
     /** Download a lesson resource (private file, access-checked). */
