@@ -2,7 +2,7 @@
 use App\Core\{Auth, Request, View};
 $path = Request::capture()->path();
 $isIn = Auth::check('student');
-$links = ['/courses' => 'Courses', '/career-accelerator' => 'Career Accelerator', '/about' => 'About', '/contact' => 'Contact'];
+$links = ['/courses' => 'Courses', '/jobs' => 'Jobs', '/career-accelerator' => 'Career Accelerator', '/about' => 'About', '/contact' => 'Contact'];
 $cur = fn(string $href) => $path === $href || str_starts_with($path, $href . '/');
 ?>
 <!doctype html>
@@ -14,6 +14,10 @@ $cur = fn(string $href) => $path === $href || str_starts_with($path, $href . '/'
   <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between gap-3">
     <a href="<?= e(url('/')) ?>" aria-label="AfriBolt Technologies home"><?= View::partial('partials/logo', ['width' => 140]) ?></a>
 
+    <form action="<?= e(url('/courses')) ?>" method="get" role="search" class="hidden lg:block flex-1 max-w-sm mx-4">
+      <label class="sr-only" for="hdr-q">Search courses</label>
+      <input id="hdr-q" class="field !rounded-full !py-2 !bg-slate-50" type="search" name="q" placeholder="Search for courses" autocomplete="off">
+    </form>
     <nav class="hidden md:flex items-center gap-7" aria-label="Main">
       <?php foreach ($links as $href => $label): ?>
         <a class="nav-link" href="<?= e(url($href)) ?>" <?= $cur($href) ? 'aria-current="page"' : '' ?>><?= e($label) ?></a>
@@ -33,6 +37,8 @@ $cur = fn(string $href) => $path === $href || str_starts_with($path, $href . '/'
   </div>
 
   <div id="mobile-menu" class="mmenu md:hidden" data-menu hidden>
+    <form action="<?= e(url('/courses')) ?>" method="get" role="search" class="pt-3"><label class="sr-only" for="m-q">Search courses</label>
+      <input id="m-q" class="field !rounded-full" type="search" name="q" placeholder="Search for courses"></form>
     <nav aria-label="Mobile">
       <?php foreach ($links + ['/faq' => 'FAQs'] as $href => $label): ?>
         <a class="mnav-link" href="<?= e(url($href)) ?>" <?= $cur($href) ? 'aria-current="page"' : '' ?>><?= e($label) ?></a>
@@ -57,7 +63,7 @@ $cur = fn(string $href) => $path === $href || str_starts_with($path, $href . '/'
   <div class="max-w-6xl mx-auto px-4 py-10 grid gap-8 md:grid-cols-3">
     <div><p class="font-display font-extrabold text-white text-xl">AfriBolt Technologies</p><p class="italic mt-1">&hellip;Dream big, Achieve big</p></div>
     <div><p class="font-bold text-white mb-2">Explore</p><ul class="space-y-1">
-      <li><a href="<?= e(url('/courses')) ?>">Courses</a></li><li><a href="<?= e(url('/career-accelerator')) ?>">Career Accelerator</a></li>
+      <li><a href="<?= e(url('/courses')) ?>">Courses</a></li><li><a href="<?= e(url('/jobs')) ?>">Jobs</a></li><li><a href="<?= e(url('/career-accelerator')) ?>">Career Accelerator</a></li>
       <li><a href="<?= e(url('/faq')) ?>">FAQs</a></li><li><a href="<?= e(url('/contact')) ?>">Contact</a></li></ul></div>
     <div><p class="font-bold text-white mb-2">Policies</p><ul class="space-y-1">
       <li><a href="<?= e(url('/privacy')) ?>">Privacy</a></li><li><a href="<?= e(url('/terms')) ?>">Terms</a></li><li><a href="<?= e(url('/refund-policy')) ?>">Refunds &amp; cancellation</a></li></ul></div>

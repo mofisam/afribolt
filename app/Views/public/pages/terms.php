@@ -71,6 +71,11 @@ ob_start(); ?>
 <?php $sections['results'] = ['Results and the Career Accelerator', ob_get_clean()];
 
 ob_start(); ?>
+<p>The jobs board lists openings collected from public sources and summarised by AI. <strong>AfriBolt is not the employer or a recruitment agency</strong>, does not guarantee that any job is genuine, still open or suitable, and is not responsible for the actions of employers. Always check the original posting, never pay to get a job, and do not share banking or identity details. We may remove any listing at any time.</p>
+<p>Self-paced courses give you a personal, non-transferable licence to use the lessons for your own learning, for as long as the course is available on the platform. Do not share your account or download and redistribute course content.</p>
+<?php $sections['jobs-learning'] = ['Jobs board and self-paced courses', ob_get_clean()];
+
+ob_start(); ?>
 <p>We may suspend or close an account that breaks these terms or puts others at risk. You can ask us to close your account at any time, subject to the refund policy and any records we must keep by law.</p>
 <?php $sections['termination'] = ['Suspension and closing accounts', ob_get_clean()];
 

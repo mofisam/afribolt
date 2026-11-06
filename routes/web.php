@@ -1,6 +1,6 @@
 <?php
 /** Public + auth routes. $router is provided by App::run(). */
-use App\Controllers\Public\{HomeController, AboutController, CourseController, CohortController, OpportunitiesController, ContactController, PageController};
+use App\Controllers\Public\{JobController, HomeController, AboutController, CourseController, CohortController, OpportunitiesController, ContactController, PageController};
 use App\Controllers\Auth\{LoginController, RegisterController, VerifyEmailController, PasswordResetController};
 use App\Middleware\GuestOnly;
 
@@ -8,7 +8,12 @@ $router->get('/', [HomeController::class, 'index']);
 $router->get('/about', [AboutController::class, 'index']);
 $router->get('/courses', [CourseController::class, 'index']);
 $router->get('/courses/{slug}', [CourseController::class, 'show']);
+$router->get('/courses/{slug}/preview/{lessonId}', [CourseController::class, 'preview']);
+$router->get('/certificate/{code}', [\App\Controllers\Public\CertificateController::class, 'show']);
 $router->get('/cohorts/{code}', [CohortController::class, 'show']);
+$router->get('/jobs', [JobController::class, 'index']);
+$router->get('/jobs/{slug}', [JobController::class, 'show']);
+$router->get('/jobs/{slug}/apply', [JobController::class, 'apply']);
 $router->get('/career-accelerator', [OpportunitiesController::class, 'index']);
 $router->get('/contact', [ContactController::class, 'show']);
 $router->post('/contact', [ContactController::class, 'submit']);

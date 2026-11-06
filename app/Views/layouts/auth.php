@@ -14,9 +14,9 @@ $wide = $path === '/register';
     <svg class="bolt" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
     <a href="<?= e(url('/')) ?>" class="inline-block bg-white rounded-lg p-2 self-start relative" aria-label="AfriBolt home"><?= View::partial('partials/logo', ['width' => 170]) ?></a>
     <div class="relative">
-      <h2 class="font-display font-extrabold text-white text-4xl leading-tight">Learn live.<br>Get hired.</h2>
+      <h2 class="font-display font-extrabold text-white text-4xl leading-tight">Learn at your pace.<br>Get hired.</h2>
       <ul class="mt-6 space-y-4 text-lg">
-        <?php foreach (['Live classes with real instructors and a cohort beside you', 'Secure your seat online, confirmed once your payment is verified', 'Join every class from your dashboard, with a countdown to day one'] as $b): ?>
+        <?php foreach (['Learn any time, on any device, and pick up where you left off', 'Earn a certificate you can share with employers', 'Get job matches based on what you are learning'] as $b): ?>
           <li class="flex gap-3"><span class="mt-1 grid place-items-center w-6 h-6 rounded-full bg-volt text-ink font-bold text-sm shrink-0" aria-hidden="true">&#10003;</span><span><?= e($b) ?></span></li>
         <?php endforeach; ?>
       </ul>

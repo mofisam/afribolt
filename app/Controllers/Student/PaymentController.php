@@ -26,12 +26,24 @@ class PaymentController extends Controller
     {
         $reference = (string) ($this->request->query('reference') ?? $this->request->query('trxref') ?? '');
         $payment = $reference ? Payment::findByReference($reference) : null;
-        $enrolment = $payment ? Enrolment::findOwned((int) $payment['enrolment_id'], (int) Auth::id('student')) : null;
-        if (!$enrolment) {
+        $uid = (int) Auth::id('student');
+
+        $course = null; $owned = false;
+        if ($payment && $payment['enrolment_id']) {
+            $owned = (bool) Enrolment::findOwned((int) $payment['enrolment_id'], $uid);
+        } elseif ($payment && $payment['course_access_id']) {
+            $course = \App\Core\Database::one('SELECT c.slug FROM course_access ca JOIN courses c ON c.id = ca.course_id WHERE ca.id = ? AND ca.user_id = ?', [(int) $payment['course_access_id'], $uid]);
+            $owned = (bool) $course;
+        }
+        if (!$owned) {
             Session::flash('error', 'Payment reference not found.');
             $this->redirect('/student/dashboard');
         }
         $result = (new PaymentService())->verifyAndConfirm($reference);
+        if ($course) {
+            Session::flash($result['ok'] ? 'success' : 'error', $result['ok'] ? 'Payment confirmed. Enjoy the course!' : $result['message']);
+            $this->redirect($result['ok'] ? '/learn/' . $course['slug'] : '/courses/' . $course['slug']);
+        }
         Session::flash($result['ok'] ? 'success' : 'error', $result['ok'] ? 'Payment confirmed. Your seat is secured!' : $result['message']);
         $this->redirect('/student/dashboard');
     }

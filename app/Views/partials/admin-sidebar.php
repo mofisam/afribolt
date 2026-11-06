@@ -13,11 +13,14 @@ try {
     if ($me('admin', 'content_manager')) {
         $alerts['sessions'] = (int) Database::value("SELECT COUNT(*) FROM class_sessions WHERE status = 'scheduled' AND starts_at BETWEEN UTC_TIMESTAMP() AND UTC_TIMESTAMP() + INTERVAL 7 DAY AND (meeting_url IS NULL OR meeting_url = '')");
     }
+    if ($me('admin', 'content_manager')) {
+        $alerts['jobs'] = (int) Database::value("SELECT COUNT(*) FROM jobs WHERE status = 'pending'") + (int) Database::value("SELECT COUNT(*) FROM job_reports WHERE status = 'open'");
+    }
     if ($me('admin')) {
         $alerts['email-logs'] = (int) Database::value("SELECT COUNT(*) FROM email_logs WHERE status = 'failed'");
     }
 } catch (\Throwable $e) { $alerts = []; }
-$alertHint = ['enrolments' => 'need review', 'sessions' => 'classes this week have no meeting link', 'email-logs' => 'failed emails'];
+$alertHint = ['enrolments' => 'need review', 'sessions' => 'classes this week have no meeting link', 'email-logs' => 'failed emails', 'jobs' => 'jobs or reports to review'];
 
 $icons = [
   '' => '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>',
@@ -36,6 +39,10 @@ $icons = [
   'audit-logs' => '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
   'email-logs' => '<path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><path d="M22 6l-10 7L2 6"/>',
   'settings' => '<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/>',
+  'reviews' => '<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>',
+  'learners' => '<circle cx="12" cy="12" r="10"/><path d="M10 8l6 4-6 4z"/>',
+  'jobs' => '<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>',
+  'job-sources' => '<path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/>',
   'admin-users' => '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
 ];
 $ico = fn(string $slug) => '<svg class="adm-ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' . ($icons[$slug] ?? '') . '</svg>';
@@ -45,13 +52,17 @@ $groups = [
   'Overview' => [['', 'Dashboard', []]],
   'Teaching' => [['cohorts', 'Cohorts', ['admin', 'content_manager']], ['sessions', 'Class sessions', ['admin', 'content_manager']],
                  ['attendance', 'Attendance', ['admin', 'content_manager']], ['announcements', 'Announcements', ['admin', 'content_manager']],
-                 ['courses', 'Courses', ['admin', 'content_manager']], ['categories', 'Categories', ['admin', 'content_manager']]],
+                 ['courses', 'Courses', ['admin', 'content_manager']], ['categories', 'Categories', ['admin', 'content_manager']],
+                 ['reviews', 'Reviews', ['admin', 'content_manager']]],
+  'Jobs'     => [['jobs', 'Jobs', ['admin', 'content_manager']], ['job-sources', 'Job sources', ['admin']]],
   'People'   => [['students', 'Students', ['admin', 'finance_manager', 'content_manager']], ['enrolments', 'Enrolments', ['admin', 'finance_manager']],
-                 ['instructors', 'Instructors', ['admin']]],
+                 ['learners', 'Self-paced learners', ['admin', 'finance_manager']], ['instructors', 'Instructors', ['admin']]],
   'Money'    => [['payments', 'Payments', ['admin', 'finance_manager']], ['reports', 'Reports', ['admin', 'finance_manager']], ['gateways', 'Gateways', ['finance_manager']]],
   'System'   => [['audit-logs', 'Audit log', ['admin']], ['email-logs', 'Email log', ['admin']], ['settings', 'Settings', ['admin']], ['admin-users', 'Admin users', []]],
 ];
 $current = explode('/', trim(substr(Request::capture()->path(), strlen('/admin')), '/'))[0];
+if (in_array($current, ['lessons', 'sections', 'resources', 'questions'], true)) { $current = 'courses'; }
+if ($current === 'job-reports') { $current = 'jobs'; }
 $roleLabel = ['super_admin' => 'Super admin', 'admin' => 'Admin', 'content_manager' => 'Content manager', 'finance_manager' => 'Finance manager'][$admin['admin_role']] ?? $admin['admin_role'];
 $initials = strtoupper(substr($admin['first_name'], 0, 1) . substr($admin['last_name'], 0, 1));
 ?>

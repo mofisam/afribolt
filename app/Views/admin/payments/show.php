@@ -4,7 +4,7 @@
   <dl class="bg-white border rounded-lg p-5 space-y-2 text-sm">
     <div class="flex justify-between"><dt class="text-slate-500">Student</dt><dd><?= e($p['first_name'] . ' ' . $p['last_name']) ?> (<?= e($p['email']) ?>)</dd></div>
     <div class="flex justify-between"><dt class="text-slate-500">Cohort</dt><dd><?= e($p['cohort_name']) ?></dd></div>
-    <div class="flex justify-between"><dt class="text-slate-500">Enrolment</dt><dd><a class="underline text-bolt-dark" href="<?= e(url('/admin/enrolments/' . $p['enrolment_id'])) ?>"><?= e($p['enrolment_number']) ?></a></dd></div>
+    <div class="flex justify-between"><dt class="text-slate-500"><?= $p['enrolment_id'] ? 'Enrolment' : 'Purchase' ?></dt><dd><?php if ($p['enrolment_id']): ?><a class="underline text-bolt-dark" href="<?= e(url('/admin/enrolments/' . $p['enrolment_id'])) ?>"><?= e($p['enrolment_number']) ?></a><?php else: ?><a class="underline text-bolt-dark" href="<?= e(url('/admin/learners')) ?>">Self-paced course</a><?php endif; ?></dd></div>
     <div class="flex justify-between"><dt class="text-slate-500">Amount</dt><dd><?= e(number_format((float) $p['amount'], 2)) ?> <?= e($p['currency']) ?></dd></div>
     <div class="flex justify-between"><dt class="text-slate-500">Refunded</dt><dd><?= e(number_format((float) $p['refunded_amount'], 2)) ?></dd></div>
     <div class="flex justify-between"><dt class="text-slate-500">Gateway</dt><dd><?= e($p['gateway_name'] ?? 'n/a') ?></dd></div>

@@ -1,7 +1,20 @@
 <h1 class="text-3xl font-extrabold">Hi <?= e($student['first_name']) ?></h1>
 <?php if ($unread): ?><p class="mt-1"><a class="underline text-bolt-dark" href="<?= e(url('/student/notifications')) ?>">You have <?= (int) $unread ?> unread notification<?= $unread > 1 ? 's' : '' ?></a></p><?php endif; ?>
 
-<?php if (!$enrolments): ?>
+<?php if (!empty($learning)): ?>
+<section class="mt-6" aria-labelledby="cl-h"><div class="flex items-center justify-between"><h2 id="cl-h" class="font-display font-bold text-xl">Continue learning</h2>
+  <a class="text-sm font-bold underline text-bolt-dark" href="<?= e(url('/student/learning')) ?>">My learning</a></div>
+  <div class="mt-3 grid sm:grid-cols-2 gap-4">
+    <?php foreach ($learning as $c): ?>
+      <a class="ccard !flex-row" href="<?= e(url('/learn/' . $c['slug'])) ?>">
+        <div class="ccard-img !aspect-auto w-28 shrink-0"><?php if (!empty($c['thumbnail_url'])): ?><img src="<?= e(asset($c['thumbnail_url'])) ?>" alt=""><?php else: ?><span class="ph-letters !text-2xl"><?= e(strtoupper(substr($c['title'], 0, 2))) ?></span><?php endif; ?></div>
+        <div class="ccard-body justify-center"><h3 class="ccard-title"><?= e($c['title']) ?></h3>
+          <div class="bar mt-1"><span style="width:<?= (int) $c['progress']['percent'] ?>%"></span></div>
+          <p class="text-xs text-slate-600"><?= (int) $c['progress']['percent'] ?>% complete &middot; <span class="font-bold text-bolt-dark">Continue &rsaquo;</span></p></div></a>
+    <?php endforeach; ?></div></section>
+<?php endif; ?>
+
+<?php if (!$enrolments && empty($learning)): ?>
   <div class="mt-8 bg-white border rounded-lg p-8 text-center">
     <p class="text-lg font-semibold">You haven't registered for a cohort yet.</p>
     <a class="btn btn-primary mt-4" href="<?= e(url('/courses')) ?>">Browse courses</a>

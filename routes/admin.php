@@ -27,6 +27,49 @@ $router->group(['prefix' => '/admin', 'middleware' => [AdminAuth::class]], funct
     $r->post('/courses/{id}', [A\CourseController::class, 'update']);
     $r->post('/courses/{id}/status', [A\CourseController::class, 'status']);
 
+    // Curriculum builder (self-paced)
+    $r->get('/courses/{id}/curriculum', [A\CurriculumController::class, 'index']);
+    $r->post('/courses/{id}/sections', [A\CurriculumController::class, 'addSection']);
+    $r->get('/courses/{id}/lessons/create', [A\CurriculumController::class, 'createLesson']);
+    $r->post('/courses/{id}/lessons', [A\CurriculumController::class, 'storeLesson']);
+    $r->post('/sections/{id}', [A\CurriculumController::class, 'renameSection']);
+    $r->post('/sections/{id}/move', [A\CurriculumController::class, 'moveSection']);
+    $r->post('/sections/{id}/delete', [A\CurriculumController::class, 'deleteSection']);
+    $r->get('/lessons/{id}/edit', [A\CurriculumController::class, 'editLesson']);
+    $r->post('/lessons/{id}', [A\CurriculumController::class, 'updateLesson']);
+    $r->post('/lessons/{id}/move', [A\CurriculumController::class, 'moveLesson']);
+    $r->post('/lessons/{id}/delete', [A\CurriculumController::class, 'deleteLesson']);
+    $r->post('/lessons/{id}/resources', [A\CurriculumController::class, 'uploadResource']);
+    $r->post('/resources/{id}/delete', [A\CurriculumController::class, 'deleteResource']);
+    $r->post('/lessons/{id}/questions', [A\CurriculumController::class, 'addQuestion']);
+    $r->post('/questions/{id}/delete', [A\CurriculumController::class, 'deleteQuestion']);
+
+    // Jobs board
+    $r->get('/jobs', [A\JobController::class, 'index']);
+    $r->get('/jobs/create', [A\JobController::class, 'create']);
+    $r->get('/jobs/reports', [A\JobController::class, 'reports']);
+    $r->post('/jobs/process-ai', [A\JobController::class, 'processAi']);
+    $r->post('/jobs', [A\JobController::class, 'store']);
+    $r->get('/jobs/{id}/review', [A\JobController::class, 'review']);
+    $r->post('/jobs/{id}', [A\JobController::class, 'update']);
+    $r->post('/jobs/{id}/status', [A\JobController::class, 'status']);
+    $r->post('/job-reports/{id}/resolve', [A\JobController::class, 'resolveReport']);
+    $r->get('/job-sources', [A\JobSourceController::class, 'index']);
+    $r->get('/job-sources/create', [A\JobSourceController::class, 'create']);
+    $r->post('/job-sources', [A\JobSourceController::class, 'store']);
+    $r->get('/job-sources/{id}/edit', [A\JobSourceController::class, 'edit']);
+    $r->post('/job-sources/{id}', [A\JobSourceController::class, 'update']);
+    $r->post('/job-sources/{id}/toggle', [A\JobSourceController::class, 'toggle']);
+    $r->post('/job-sources/{id}/run', [A\JobSourceController::class, 'run']);
+
+    // Reviews + self-paced learners
+    $r->get('/reviews', [A\ReviewController::class, 'index']);
+    $r->post('/reviews/{id}/status', [A\ReviewController::class, 'status']);
+    $r->get('/learners', [A\LearnerController::class, 'index']);
+    $r->post('/learners/grant', [A\LearnerController::class, 'grant']);
+    $r->post('/learners/{id}/revoke', [A\LearnerController::class, 'revoke']);
+    $r->post('/learners/{id}/restore', [A\LearnerController::class, 'restore']);
+
     // Cohorts
     $r->get('/cohorts', [A\CohortController::class, 'index']);
     $r->get('/cohorts/create', [A\CohortController::class, 'create']);

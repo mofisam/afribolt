@@ -10,6 +10,8 @@ Built from the project requirements doc and `live_online_educational_platform_sc
    mysql -u root -p < database/schema.sql
    mysql -u root -p < database/migrations/001_create_enquiries.sql
    mysql -u root -p < database/migrations/002_announcements_instructor_author.sql
+   mysql -u root -p < database/migrations/003_self_paced_learning.sql
+   mysql -u root -p < database/migrations/004_jobs.sql
    ```
 2. **Config**: `cp .env.example .env`, then set `DB_*`, `APP_URL`, and `SEED_ADMIN_PASSWORD`.
 3. **Seed**
@@ -97,6 +99,31 @@ New in this update: set `APP_KEY` in `.env` (needed only if you store meeting pa
 - "Record a refund" only records a refund you already paid out; it does not call the gateway.
 - Deposit/instalment payment plans are not offered at checkout (the cohort form hides that setting).
 - Instructors have no self-service password reset yet (admin sets the password).
+
+## Jobs board (Nigeria) with AI
+
+`/jobs` lists openings collected automatically, cleaned and categorised by AI, with scam checks, saved jobs and personal recommendations. The site is now positioned around **learning at your own pace first**, with live cohorts as the alternative.
+
+**How it works**
+1. **Collect:** `cron/jobs_sync.php` (every 30 min) pulls from every enabled source in *Admin > Job sources*: RSS/Atom feeds, the Jooble API, any JSON API (field-mapped in settings), or pages exposing schema.org `JobPosting` data. Requests identify themselves (`AfriBoltJobsBot`), honour robots.txt, rate-limit per host and refuse private network addresses.
+2. **Clean:** HTML is stripped, places/states, pay, type and level are parsed with rules, and duplicates (same title + company + state) are skipped.
+3. **AI:** Claude (`ANTHROPIC_API_KEY`) rewrites a short plain-text summary in its own words, normalises the title, picks a category, extracts skills, salary, deadline and state, and gives a **scam-risk** and **quality** score. Job text is treated as untrusted data (prompt-injection safe) and every field is validated before saving. Rules can only *raise* the scam score.
+4. **Publish or hold:** low-risk, good-quality jobs publish automatically; risky/low-quality ones wait in *Admin > Jobs* for review. Without an AI key, rule-based cleaning is used and far fewer jobs auto-publish.
+5. **Recommend:** each learner is scored against their chosen interests/skills and the topics of the courses they take; Claude writes a one-line "why this fits you" and a tip for the top matches (only interests/skills are sent, never names or emails). Job pages also suggest your courses that build the skills a job asks for. `cron/jobs_digest.php` emails opted-in learners.
+
+**Important:** only add sources whose terms allow automated access (official APIs, public feeds, or written permission). The site shows our own short summary plus a link to the original posting and never republishes full job text. Set `ANTHROPIC_API_KEY` (and optionally `JOOBLE_API_KEY`) in `.env`; costs are capped by `ai_max_per_run` in `config/jobs.php`. Run `php database/seed.php --sample` for sample jobs and a disabled Jooble source.
+
+## Self-paced courses (Udemy-style)
+
+Every course has a **delivery mode**: live cohorts, self-paced (on demand), or both.
+
+- **Catalog and course page:** search, filters (category, level, price, rating, live vs self-paced), sort; course page with promo video, what you'll learn, curriculum accordion with free previews, instructor, reviews, sale countdown and a sticky buy card.
+- **Learner experience:** `My learning` with progress; a lesson player (video via YouTube/Vimeo/direct MP4, articles, quizzes with a 70% pass mark, downloadable files); progress and resume saved automatically; reviews and ratings; a printable **certificate** with a public verification link (`/certificate/CODE`).
+- **Access:** free enrol, one-time purchase (same payment provider, verified server-side), admin grant, or automatically for confirmed live-cohort students (switchable per course). Lifetime access.
+- **Admin:** Courses -> *Curriculum* builds sections and lessons (reorder, free preview, publish/draft), uploads downloadable files (stored privately), and quiz questions. *Self-paced learners* grants/revokes access; *Reviews* hides abusive reviews. Payments, reports and CSV exports include course purchases.
+- **Not included yet (good next steps):** instructors authoring their own courses, learner Q&A, coupons, a shopping cart/wishlist, video upload/streaming hosting (use YouTube unlisted or Vimeo for now), subtitles.
+
+`php database/seed.php --sample` also creates a sample self-paced course with article and quiz lessons. Add a video lesson from the Curriculum screen.
 
 ## Policy pages (FAQ, Privacy, Terms, Refunds)
 

@@ -54,6 +54,16 @@ ob_start(); ?>
 <?php $sections['share'] = ['Who we share it with', ob_get_clean()];
 
 ob_start(); ?>
+<p>Our learning and jobs features use some automated processing:</p>
+<ul>
+  <li><strong>Learning progress:</strong> we record which lessons you complete, quiz scores and your last position so you can continue where you stopped, and to issue certificates.</li>
+  <li><strong>Job recommendations:</strong> we match jobs to the interests, skills and places you choose and to the topics of the courses you take. Saved jobs and job-report records are linked to your account.</li>
+  <li><strong>AI providers:</strong> job postings are processed by an AI service (Anthropic) to clean and categorise them. To write short &ldquo;why this job fits&rdquo; notes, we send that provider only your chosen interests, skills and course topics. <strong>We never send your name, email or phone number.</strong> <?= $todo('Confirm the AI provider and its data-handling terms.') ?></li>
+  <li><strong>Job emails:</strong> only if you switch on job alerts. You can turn them off in your job preferences.</li>
+</ul>
+<?php $sections['ai'] = ['Learning, jobs and AI', ob_get_clean()];
+
+ob_start(); ?>
 <p>Some of our providers store or process data outside Nigeria. Where that happens, we take steps to make sure your data stays protected, as required by data protection law. <?= $todo('List hosting location and any transfer safeguards once confirmed.') ?></p>
 <?php $sections['transfers'] = ['Transfers outside Nigeria', ob_get_clean()];
 

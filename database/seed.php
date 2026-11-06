@@ -56,4 +56,56 @@ if (!Cohort::findBy('cohort_code', 'WEB-SAMPLE-1')) {
     }
     echo "Created sample course + cohort WEB-SAMPLE-1 with 4 sessions\n";
 }
+
+// 4) Sample SELF-PACED course (needs migration 003). Add a video lesson yourself from Admin > Courses > Curriculum.
+use App\Models\{CourseSection, Lesson, QuizOption, QuizQuestion};
+use App\Services\CourseCatalogService;
+if (!Course::findBy('slug', 'digital-skills-foundations')) {
+    $cid = Course::create(['category_id' => (int) $cat['id'], 'title' => 'Digital Skills Foundations (SAMPLE)', 'slug' => 'digital-skills-foundations',
+        'short_description' => 'Sample self-paced course. Learn the basics at your own pace.', 'description' => "## About this course\nThis is **sample content**. Replace it with your own.",
+        'learning_objectives' => "Understand how the internet works\nUse online tools safely\nSpot common scams", 'prerequisites' => 'No experience needed.',
+        'course_level' => 'beginner', 'delivery_mode' => 'self_paced', 'price' => 15000, 'price_currency' => 'NGN', 'promo_price' => 9999,
+        'promo_ends_at' => gmdate('Y-m-d H:i:s', time() + 7 * 86400), 'status' => 'published', 'published_at' => utc_now()]);
+    $s1 = CourseSection::create(['course_id' => $cid, 'title' => 'Getting started', 'position' => 1]);
+    $s2 = CourseSection::create(['course_id' => $cid, 'title' => 'Staying safe online', 'position' => 2]);
+    Lesson::create(['course_id' => $cid, 'section_id' => $s1, 'title' => 'Welcome', 'lesson_type' => 'article', 'duration_seconds' => 120, 'is_preview' => 1, 'status' => 'published', 'position' => 1,
+        'content' => "# Welcome\nIn this course you will learn the basics, step by step.\n\n- Learn at your own pace\n- Finish each lesson to track your progress\n\nRead more at [our site](https://example.com)."]);
+    Lesson::create(['course_id' => $cid, 'section_id' => $s1, 'title' => 'How the internet works', 'lesson_type' => 'article', 'duration_seconds' => 300, 'status' => 'published', 'position' => 2,
+        'content' => "## Browsers and servers\nWhen you open a website, your **browser** asks a **server** for the page.\n\n1. You type an address\n2. Your browser finds the server\n3. The server sends the page back"]);
+    $q = Lesson::create(['course_id' => $cid, 'section_id' => $s2, 'title' => 'Check your knowledge', 'lesson_type' => 'quiz', 'duration_seconds' => 0, 'status' => 'published', 'position' => 1]);
+    foreach ([['What does a browser do?', 'It requests and shows web pages.', ['Requests and shows web pages', 'Stores your emails', 'Makes the internet faster']],
+              ['Which is the strongest password habit?', 'Unique passwords stop one leak from exposing every account.', ['Reuse one password everywhere', 'Use a unique password for each account', 'Share it with friends']]] as $i => [$text, $why, $opts]) {
+        $qid = QuizQuestion::create(['lesson_id' => $q, 'question' => $text, 'explanation' => $why, 'position' => $i + 1]);
+        foreach ($opts as $n => $o) { QuizOption::create(['question_id' => $qid, 'option_text' => $o, 'is_correct' => ($i === 0 ? $n === 0 : $n === 1) ? 1 : 0, 'position' => $n + 1]); }
+    }
+    CourseCatalogService::refresh($cid);
+    echo "Created sample self-paced course (digital-skills-foundations)\n";
+}
+
+// 5) Sample jobs + a disabled Jooble source (needs migration 004). Sample jobs link to example.com: delete them before launch.
+use App\Models\{Job, JobSource};
+use App\Services\Jobs\JobCleaner;
+if (!JobSource::findBy('name', 'Jooble Nigeria')) {
+    JobSource::create(['name' => 'Jooble Nigeria', 'source_type' => 'jooble', 'config' => json_encode(['keywords' => ['developer', 'accountant', 'customer service', 'marketing', 'graduate trainee'], 'location' => 'Nigeria', 'pages' => 2]),
+        'permission_note' => 'Official Jooble API (needs JOOBLE_API_KEY). Enable after adding the key.', 'fetch_interval_minutes' => 240, 'is_enabled' => 0]);
+    echo "Created job source: Jooble Nigeria (disabled; add JOOBLE_API_KEY then enable)\n";
+}
+if (!Job::findBy('slug', 'junior-php-developer-sample-employer')) {
+    $cats = array_column(\App\Core\Database::all('SELECT id, slug FROM job_categories'), 'id', 'slug');
+    foreach ([
+        ['Junior PHP Developer', 'software-it', 'Lagos', 'Ikeja', 'hybrid', 'full_time', 'entry', ['PHP', 'MySQL', 'JavaScript'], 'Build and maintain internal web tools with a small engineering team. Good fit for a recent graduate who knows PHP and SQL.', 350000, 500000],
+        ['Customer Support Representative', 'customer-service', 'FCT', 'Abuja', 'onsite', 'full_time', 'entry', ['Communication', 'CRM', 'Excel'], 'Handle customer enquiries by phone, email and chat, and keep accurate records. Training is provided.', 150000, 220000],
+        ['Digital Marketing Executive', 'marketing-sales', 'Lagos', 'Lekki', 'remote', 'contract', 'mid', ['SEO', 'Social media', 'Google Analytics'], 'Plan and run online campaigns for several brands and report on results every month.', null, null],
+        ['Data Analyst Intern', 'data-analytics', 'Oyo', 'Ibadan', 'hybrid', 'internship', 'entry', ['Excel', 'SQL', 'Power BI'], 'Support the analytics team by cleaning data and building simple dashboards. A three-month paid internship.', 80000, 100000],
+        ['Accountant', 'finance-accounting', 'Rivers', 'Port Harcourt', 'onsite', 'full_time', 'mid', ['Bookkeeping', 'Tax', 'Excel'], 'Prepare monthly accounts, reconcile bank statements and support the annual audit.', 250000, 350000],
+        ['Graphic Designer', 'design-creative', 'Lagos', 'Yaba', 'remote', 'part_time', 'mid', ['Figma', 'Photoshop', 'Branding'], 'Design social posts, brochures and presentation slides for a growing training company.', null, null],
+    ] as $n => [$title, $cat, $state, $city, $mode, $type, $level, $skills, $summary, $min, $max]) {
+        Job::create(['slug' => Job::uniqueSlug($title, 'Sample Employer'), 'canonical_hash' => JobCleaner::canonical($title, 'Sample Employer', $state), 'title' => $title, 'company' => 'Sample Employer',
+            'category_id' => $cats[$cat] ?? null, 'location_text' => $city . ', ' . $state, 'state' => $state === 'FCT' ? 'FCT' : $state, 'city' => $city, 'work_mode' => $mode, 'employment_type' => $type, 'experience_level' => $level,
+            'salary_min' => $min, 'salary_max' => $max, 'salary_currency' => $min ? 'NGN' : null, 'summary' => $summary, 'skills' => json_encode($skills), 'source_url' => 'https://example.com/jobs/sample-' . ($n + 1),
+            'source_name' => 'Sample', 'posted_at' => gmdate('Y-m-d H:i:s', time() - $n * 86400), 'last_seen_at' => utc_now(), 'status' => 'published', 'ai_status' => 'skipped', 'quality_score' => 80, 'scam_risk' => 0,
+            'published_at' => utc_now()]);
+    }
+    echo "Created 6 sample jobs\n";
+}
 echo "Done.\n";

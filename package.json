@@ -1,0 +1,28 @@
+{
+  "name": "afribolt",
+  "version": "1.0.0",
+  "description": "Plain-PHP MVC (no framework, no Composer): HTML / Tailwind / JS / PHP 8.1+ / MySQL 8.0.16+ via MySQLi. Built from the project requirements doc and `live_online_educational_platform_schema.sql` (included in `database/schema.sql`).",
+  "main": "tailwind.config.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mofisam/afribolt.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/mofisam/afribolt/issues"
+  },
+  "homepage": "https://github.com/mofisam/afribolt#readme",
+  "dependencies": {
+    "@tailwindcss/cli": "^4.3.3",
+    "tailwindcss": "^4.3.3"
+  }
+}

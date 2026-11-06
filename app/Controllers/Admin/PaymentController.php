@@ -19,8 +19,8 @@ class PaymentController extends BaseAdminController
         if ($s = $this->request->query('status')) { $where[] = 'p.status = ?'; $p[] = $s; }
         if ($f = $this->request->query('from')) { $where[] = 'p.created_at >= ?'; $p[] = $f . ' 00:00:00'; }
         if ($t = $this->request->query('to')) { $where[] = 'p.created_at <= ?'; $p[] = $t . ' 23:59:59'; }
-        [$rows, $pager] = $this->paged('payments p JOIN enrolments e ON e.id = p.enrolment_id JOIN users u ON u.id = e.student_id JOIN cohorts h ON h.id = e.cohort_id WHERE ' . implode(' AND ', $where), $p,
-            'p.*, u.first_name, u.last_name, u.email, h.cohort_name', 'p.created_at DESC');
+        [$rows, $pager] = $this->paged('payments p LEFT JOIN enrolments e ON e.id = p.enrolment_id LEFT JOIN cohorts h ON h.id = e.cohort_id LEFT JOIN course_access ca ON ca.id = p.course_access_id LEFT JOIN courses c ON c.id = ca.course_id JOIN users u ON u.id = COALESCE(e.student_id, ca.user_id) WHERE ' . implode(' AND ', $where), $p,
+            "p.*, u.first_name, u.last_name, u.email, COALESCE(h.cohort_name, CONCAT('Self-paced: ', c.title)) AS cohort_name", 'p.created_at DESC');
         $this->page('admin/crud/index', [
             'title' => 'Payments', 'rows' => $rows, 'pager' => $pager,
             'intro' => 'Dates filter on the day the payment attempt was created (UTC).',
@@ -40,9 +40,10 @@ class PaymentController extends BaseAdminController
 
     public function show(string $id): void
     {
-        $p = Database::one('SELECT p.*, u.first_name, u.last_name, u.email, h.cohort_name, e.enrolment_number, g.display_name AS gateway_name
-                            FROM payments p JOIN enrolments e ON e.id = p.enrolment_id JOIN users u ON u.id = e.student_id JOIN cohorts h ON h.id = e.cohort_id
-                            LEFT JOIN payment_gateways g ON g.id = p.gateway_id WHERE p.id = ?', [(int) $id]) ?? $this->abort(404);
+        $p = Database::one("SELECT p.*, u.first_name, u.last_name, u.email, COALESCE(h.cohort_name, CONCAT('Self-paced: ', c.title)) AS cohort_name, e.enrolment_number, c.slug AS course_slug, g.display_name AS gateway_name
+                            FROM payments p LEFT JOIN enrolments e ON e.id = p.enrolment_id LEFT JOIN cohorts h ON h.id = e.cohort_id
+                            LEFT JOIN course_access ca ON ca.id = p.course_access_id LEFT JOIN courses c ON c.id = ca.course_id
+                            JOIN users u ON u.id = COALESCE(e.student_id, ca.user_id) LEFT JOIN payment_gateways g ON g.id = p.gateway_id WHERE p.id = ?", [(int) $id]) ?? $this->abort(404);
         $json = $p['provider_response'] ? json_encode(json_decode($p['provider_response']), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) : '';
         $this->page('admin/payments/show', ['title' => 'Payment ' . $p['internal_reference'], 'p' => $p, 'json' => $json,
             'canRefund' => \App\Core\Auth::adminHasRole('super_admin', 'finance_manager')]);

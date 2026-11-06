@@ -38,6 +38,19 @@ class PageController extends Controller
                 ['How do I register for a cohort?', 'Open the course, choose a cohort, and select <strong>Register</strong>. If the cohort needs payment, you will be taken to secure checkout straight after. Your seat is confirmed once the payment is verified.'],
                 ['Which cohort should I pick?', 'Cohorts of the same course teach the same material and differ by start date and class times. Pick the one that fits your schedule. The cohort page shows every class date and the timezone.'],
             ],
+            'Self-paced courses' => [
+                ['How do self-paced courses work?', 'You can start straight away and learn whenever it suits you. Each course has sections with video, reading and quiz lessons. Your progress saves automatically, so you can stop and continue on any device.'],
+                ['How long do I have access?', 'Lifetime access. Once you enrol, the course stays in <strong>My learning</strong> for as long as it exists on the platform.'],
+                ['Do I get a certificate?', 'Yes, on courses that offer one. Finish every lesson (and pass any quizzes) and your certificate appears, with a link anyone can use to verify it.'],
+                ['What is a free preview lesson?', 'Some lessons are marked <em>Preview</em> so you can try a course before you buy.'],
+                ['I joined a live cohort. Can I use the course material?', 'Usually yes. Confirmed cohort students also get the on-demand lessons for that course, unless the course page says otherwise.'],
+            ],
+            'Jobs' => [
+                ['Where do the jobs come from?', 'We collect openings from public sources such as feeds and job APIs, then use AI to tidy them up, sort them into categories and flag anything that looks like a scam. We always link you to the original posting.'],
+                ['Does AfriBolt hire for these jobs?', 'No. Employers do the hiring. We only help you find and prepare for openings, and apply on the employer\'s own page.'],
+                ['How are jobs recommended to me?', 'We match jobs to the interests and skills you give us and the topics of the courses you take. AI writes a short note on why a job may suit you. Your name and email are never sent to the AI provider.'],
+                ['How do I avoid job scams?', 'Never pay to get a job, never share your BVN, card details or OTP, and be careful with WhatsApp-only offers. Use <strong>Report this job</strong> on any posting that looks wrong.'],
+            ],
             'Classes & joining' => [
                 ['How do the live classes work?', 'Classes run live online on Google Meet, Zoom or Microsoft Teams, depending on the programme. You join from your dashboard, so there are no links to hunt for in your inbox.'],
                 ['Where is the Join Class button, and when does it work?', "It sits next to each class on your dashboard. It switches on {$join} minutes before the start and stays available until the class ends. Only confirmed students can use it."],

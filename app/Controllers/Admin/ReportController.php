@@ -36,9 +36,10 @@ class ReportController extends BaseAdminController
         [$from, $to] = $this->range();
         $type = (string) $this->request->query('type', 'enrolments');
         if ($type === 'payments') {
-            $head = ['Reference', 'Student', 'Email', 'Cohort', 'Amount', 'Currency', 'Status', 'Refunded', 'Method', 'Paid at (UTC)', 'Created (UTC)'];
-            $rows = Database::all("SELECT p.internal_reference, CONCAT(u.first_name,' ',u.last_name) n, u.email, h.cohort_name, p.amount, p.currency, p.status, p.refunded_amount, p.payment_method, p.paid_at, p.created_at
-                FROM payments p JOIN enrolments e ON e.id = p.enrolment_id JOIN users u ON u.id = e.student_id JOIN cohorts h ON h.id = e.cohort_id
+            $head = ['Reference', 'Student', 'Email', 'Cohort / course', 'Amount', 'Currency', 'Status', 'Refunded', 'Method', 'Paid at (UTC)', 'Created (UTC)'];
+            $rows = Database::all("SELECT p.internal_reference, CONCAT(u.first_name,' ',u.last_name) n, u.email, COALESCE(h.cohort_name, CONCAT('Self-paced: ', c.title)) AS cohort_name, p.amount, p.currency, p.status, p.refunded_amount, p.payment_method, p.paid_at, p.created_at
+                FROM payments p LEFT JOIN enrolments e ON e.id = p.enrolment_id LEFT JOIN cohorts h ON h.id = e.cohort_id LEFT JOIN course_access ca ON ca.id = p.course_access_id LEFT JOIN courses c ON c.id = ca.course_id
+                JOIN users u ON u.id = COALESCE(e.student_id, ca.user_id)
                 WHERE p.created_at BETWEEN ? AND ? ORDER BY p.created_at DESC", [$from . ' 00:00:00', $to . ' 23:59:59']);
         } else {
             $head = ['Enrolment', 'Student', 'Email', 'Phone', 'Cohort', 'Status', 'Fee', 'Paid', 'Currency', 'Registered (UTC)'];

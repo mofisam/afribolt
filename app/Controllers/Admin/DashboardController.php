@@ -45,6 +45,10 @@ class DashboardController extends Controller
         if ($teach) {
             $add((int) Database::value("SELECT COUNT(*) FROM class_sessions WHERE status = 'scheduled' AND starts_at BETWEEN UTC_TIMESTAMP() AND UTC_TIMESTAMP() + INTERVAL 7 DAY AND (meeting_url IS NULL OR meeting_url = '')"), 'Classes this week without a meeting link', 'Students will see a disabled Join button.', '/admin/sessions?when=upcoming', 'bad');
         }
+        if ($teach) {
+            $add((int) Database::value("SELECT COUNT(*) FROM jobs WHERE status = 'pending'"), 'Jobs waiting for review', 'The AI held these for a human check (possible scam or low quality).', '/admin/jobs?status=pending');
+            $add((int) Database::value("SELECT COUNT(*) FROM job_reports WHERE status = 'open'"), 'Job reports from visitors', 'Learners flagged these postings.', '/admin/jobs/reports', 'bad');
+        }
         if ($isAdmin) {
             $add((int) Database::value("SELECT COUNT(*) FROM email_logs WHERE status = 'failed'"), 'Failed emails', 'Retry them from the email log.', '/admin/email-logs?status=failed');
         }
