@@ -22,7 +22,7 @@
   },
   "homepage": "https://github.com/mofisam/afribolt#readme",
   "dependencies": {
-    "@tailwindcss/cli": "^4.3.3",
-    "tailwindcss": "^4.3.3"
+    "@tailwindcss/cli": "^4.3.5",
+    "tailwindcss": "^4.3.5"
   }
 }
