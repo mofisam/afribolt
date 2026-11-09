@@ -61,6 +61,7 @@ $router->group(['prefix' => '/admin', 'middleware' => [AdminAuth::class]], funct
     $r->post('/job-sources/{id}', [A\JobSourceController::class, 'update']);
     $r->post('/job-sources/{id}/toggle', [A\JobSourceController::class, 'toggle']);
     $r->post('/job-sources/{id}/run', [A\JobSourceController::class, 'run']);
+    $r->post('/job-sources/{id}/test', [A\JobSourceController::class, 'test']);
 
     // Reviews + self-paced learners
     $r->get('/reviews', [A\ReviewController::class, 'index']);

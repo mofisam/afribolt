@@ -111,6 +111,8 @@ New in this update: set `APP_KEY` in `.env` (needed only if you store meeting pa
 4. **Publish or hold:** low-risk, good-quality jobs publish automatically; risky/low-quality ones wait in *Admin > Jobs* for review. Without an AI key, rule-based cleaning is used and far fewer jobs auto-publish.
 5. **Recommend:** each learner is scored against their chosen interests/skills and the topics of the courses they take; Claude writes a one-line "why this fits you" and a tip for the top matches (only interests/skills are sent, never names or emails). Job pages also suggest your courses that build the skills a job asks for. `cron/jobs_digest.php` emails opted-in learners.
 
+**Testing a source:** in *Admin > Job sources* press **Test** to see exactly what a source returns (HTTP status, counts, first posting) without saving anything. For Jooble the system tries several endpoints and locations and tells you which worked. If Jooble returns nothing for Nigeria, check that the key is enabled for Nigeria in your Jooble account, or add another source: a RapidAPI **JSearch** example (covers Nigeria) is in the settings examples, and any RSS feed or JSON API can be added the same way.
+
 **Important:** only add sources whose terms allow automated access (official APIs, public feeds, or written permission). The site shows our own short summary plus a link to the original posting and never republishes full job text. Set `ANTHROPIC_API_KEY` (and optionally `JOOBLE_API_KEY`) in `.env`; costs are capped by `ai_max_per_run` in `config/jobs.php`. Run `php database/seed.php --sample` for sample jobs and a disabled Jooble source.
 
 ## Self-paced courses (Udemy-style)

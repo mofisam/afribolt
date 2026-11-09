@@ -4,6 +4,7 @@ namespace App\Services\Jobs;
 /** Fetches public URLs for the job sources: identifies itself, honours robots.txt, rate-limits per host, blocks private networks. */
 final class HttpClient
 {
+    public static int $lastCode = 0;
     private static array $robots = [];
     private static array $last = [];
 
@@ -83,6 +84,7 @@ final class HttpClient
             $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
             $err = curl_error($ch);
             curl_close($ch);
+            self::$lastCode = $code;
 
             if (in_array($code, [301, 302, 303, 307, 308], true) && $location) {
                 $url = (parse_url($location, PHP_URL_SCHEME) ? $location : ($p['scheme'] . '://' . $p['host'] . '/' . ltrim($location, '/')));

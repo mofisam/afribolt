@@ -262,3 +262,9 @@ mark.ph { background: #fff0a6; padding: 0 .25em; border-radius: .2em; color: inh
 .pill { display: inline-flex; align-items: center; gap: .4rem; border: 1.5px solid #cbd5e1; border-radius: 999px; padding: .35rem .8rem; cursor: pointer; font-weight: 600; font-size: .9rem; background: #fff; }
 .pill:has(input:checked) { background: var(--tint); border-color: var(--bolt); color: var(--bolt-dark); }
 .pill input { accent-color: var(--bolt); }
+
+/* sort links (courses + jobs) */
+.sortlinks a { color: var(--bolt-dark); text-decoration: none; font-weight: 600; padding-bottom: 2px; border-bottom: 2px solid transparent; }
+.sortlinks a:hover { border-bottom-color: #cbd5e1; }
+.sortlinks a[aria-current="true"] { color: var(--ink); border-bottom-color: var(--volt); }
+.filters label.opt .stars { font-size: .95rem; }

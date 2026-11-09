@@ -86,7 +86,7 @@ if (!Course::findBy('slug', 'digital-skills-foundations')) {
 use App\Models\{Job, JobSource};
 use App\Services\Jobs\JobCleaner;
 if (!JobSource::findBy('name', 'Jooble Nigeria')) {
-    JobSource::create(['name' => 'Jooble Nigeria', 'source_type' => 'jooble', 'config' => json_encode(['keywords' => ['developer', 'accountant', 'customer service', 'marketing', 'graduate trainee'], 'location' => 'Nigeria', 'pages' => 2]),
+    JobSource::create(['name' => 'Jooble Nigeria', 'source_type' => 'jooble', 'config' => json_encode(['keywords' => ['developer', 'accountant', 'customer service', 'marketing', 'graduate trainee'], 'locations' => ['Nigeria', 'Lagos', 'Abuja'], 'pages' => 2]),
         'permission_note' => 'Official Jooble API (needs JOOBLE_API_KEY). Enable after adding the key.', 'fetch_interval_minutes' => 240, 'is_enabled' => 0]);
     echo "Created job source: Jooble Nigeria (disabled; add JOOBLE_API_KEY then enable)\n";
 }

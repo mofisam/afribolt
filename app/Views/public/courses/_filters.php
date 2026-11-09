@@ -8,4 +8,4 @@
 <details><summary>Level</summary><div class="pt-1">
   <?= $opt('level', '', 'All levels') ?><?= $opt('level', 'beginner', 'Beginner') ?><?= $opt('level', 'intermediate', 'Intermediate') ?><?= $opt('level', 'advanced', 'Advanced') ?></div></details>
 <details><summary>Rating</summary><div class="pt-1">
-  <?= $opt('rating', '', 'Any') ?><?= $opt('rating', '4.5', '4.5 &amp; up') ?><?= $opt('rating', '4', '4.0 &amp; up') ?><?= $opt('rating', '3', '3.0 &amp; up') ?></div></details>
+  <?= $opt('rating', '', 'Any') ?><?= $opt('rating', '4.5', '4.5 & up') ?><?= $opt('rating', '4', '4.0 & up') ?><?= $opt('rating', '3', '3.0 & up') ?></div></details>

@@ -29,7 +29,11 @@ class JobSourceController extends BaseAdminController
 
     private const EXAMPLES = <<<'TXT'
 RSS / Atom feed:      {"respect_robots": true}
-Jooble API:           {"keywords": ["developer", "accountant", "customer service"], "location": "Nigeria", "pages": 2}   (needs JOOBLE_API_KEY in .env)
+Jooble API:           {"keywords": ["developer", "accountant", "customer service"], "locations": ["Nigeria", "Lagos", "Abuja"], "pages": 2}   (needs JOOBLE_API_KEY; the system probes which endpoint/location works)
+JSearch (RapidAPI), covers Nigeria. URL: https://jsearch.p.rapidapi.com/search?query=jobs%20in%20Nigeria&country=ng&num_pages=2&date_posted=month
+                      {"items_path": "data", "headers": {"X-RapidAPI-Key": "{{env:RAPIDAPI_KEY}}", "X-RapidAPI-Host": "jsearch.p.rapidapi.com"},
+                       "map": {"id": "job_id", "title": "job_title", "company": "employer_name", "location": ["job_city", "job_state", "job_country"], "url": "job_apply_link", "description": "job_description", "posted_at": "job_posted_at_datetime_utc"}}
+                      (field names come from the provider documentation; use the Test button to confirm)
 Generic JSON API:     {"items_path": "data.jobs", "headers": {"Authorization": "Bearer {{env:MY_SOURCE_KEY}}"},
                        "map": {"id": "id", "title": "title", "company": "company.name", "location": "location", "url": "apply_url", "description": "description", "posted_at": "date"}}
 JSON-LD pages:        {"urls": ["https://example.com/jobs/123"]}   or a listing page:   {"link_pattern": "/jobs/[0-9]+", "max_detail_pages": 20}
@@ -76,6 +80,7 @@ TXT;
                 ['label' => 'Jobs', 'render' => fn($r) => $r['jobs_total']],
             ],
             'actions' => fn($r) => [
+                ['label' => 'Test', 'url' => url('/admin/job-sources/' . $r['id'] . '/test'), 'post' => true],
                 ['label' => 'Run now', 'url' => url('/admin/job-sources/' . $r['id'] . '/run'), 'post' => true],
                 ['label' => $r['is_enabled'] ? 'Disable' : 'Enable', 'url' => url('/admin/job-sources/' . $r['id'] . '/toggle'), 'post' => true],
                 ['label' => 'Edit', 'url' => url('/admin/job-sources/' . $r['id'] . '/edit')],
@@ -121,6 +126,16 @@ TXT;
         JobSource::update((int) $s['id'], ['is_enabled' => $new]);
         $this->audit('job_source.toggled', 'job_source', (int) $s['id'], ['is_enabled' => $s['is_enabled']], ['is_enabled' => $new]);
         $this->done('Source ' . ($new ? 'enabled' : 'disabled') . '.', '/admin/job-sources');
+    }
+
+    /** Show what this source really returns, without saving anything. */
+    public function test(string $id): void
+    {
+        $s = JobSource::find((int) $id) ?? $this->abort(404);
+        @set_time_limit(120);
+        $msg = \App\Services\Jobs\Sources::diagnose($s);
+        $bad = str_starts_with($msg, 'FAILED') || str_starts_with($msg, 'NO JOBS') || str_starts_with($msg, 'JOOBLE_API_KEY');
+        $this->done($s['name'] . ': ' . $msg, '/admin/job-sources', $bad ? 'error' : 'success');
     }
 
     /** Collect now (and process up to 20 new jobs). Slow sources are better left to cron. */

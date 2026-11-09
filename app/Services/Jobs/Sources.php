@@ -57,14 +57,48 @@ final class Sources
     }
 
     // ---- Jooble API (https://jooble.org/api/about) ----
+    private static function joobleCall(string $base, string $key, array $body): array
+    {
+        $raw = HttpClient::postJson(rtrim($base, '/') . '/' . rawurlencode($key), $body);
+        $res = json_decode($raw, true);
+        if (!is_array($res)) { throw new \RuntimeException('not JSON: ' . mb_substr(trim(strip_tags($raw)), 0, 100)); }
+        return $res;
+    }
+
+    /** Find a base URL + location that actually returns Nigerian jobs. @return array{0:string,1:string}|null */
+    private static function joobleProbe(array $cfg, string $key, array &$notes): ?array
+    {
+        $bases = (array) ($cfg['base_urls'] ?? ['https://jooble.org/api/', 'https://ng.jooble.org/api/']);
+        $locs = (array) ($cfg['locations'] ?? [$cfg['location'] ?? 'Nigeria', 'Lagos', 'Abuja', '']);
+        $kw = (string) (((array) ($cfg['keywords'] ?? ['']))[0] ?? '');
+        foreach ($bases as $base) {
+            foreach ($locs as $loc) {
+                $label = parse_url($base, PHP_URL_HOST) . ' / location "' . $loc . '"';
+                try {
+                    $res = self::joobleCall($base, $key, ['keywords' => $kw, 'location' => $loc, 'page' => 1]);
+                    $n = count($res['jobs'] ?? []);
+                    $notes[] = "{$label}: HTTP " . HttpClient::$lastCode . ", {$n} jobs (total " . ($res['totalCount'] ?? '?') . ')' . (isset($res['error']) ? ' error=' . json_encode($res['error']) : '');
+                    if ($n > 0) { return [$base, $loc]; }
+                } catch (\Throwable $e) { $notes[] = "{$label}: " . $e->getMessage(); }
+            }
+        }
+        return null;
+    }
+
     private static function jooble(array $s, array $cfg): array
     {
         $key = (string) config('jobs.jooble_key', '');
         if ($key === '') { throw new \RuntimeException('JOOBLE_API_KEY is not set in .env.'); }
+        $notes = [];
+        $probe = self::joobleProbe($cfg, $key, $notes);
+        if (!$probe) {
+            throw new \RuntimeException('Jooble returned no jobs. Tried: ' . implode(' | ', $notes) . '. Check that your Jooble key is enabled for Nigeria, or use another source type.');
+        }
+        [$base, $loc] = $probe;
         $out = [];
         foreach ((array) ($cfg['keywords'] ?? ['']) as $kw) {
             for ($page = 1; $page <= (int) ($cfg['pages'] ?? 2); $page++) {
-                $res = json_decode(HttpClient::postJson('https://jooble.org/api/' . rawurlencode($key), ['keywords' => $kw, 'location' => $cfg['location'] ?? 'Nigeria', 'page' => $page]), true);
+                try { $res = self::joobleCall($base, $key, ['keywords' => $kw, 'location' => $loc, 'page' => $page]); } catch (\Throwable $e) { break; }
                 foreach ($res['jobs'] ?? [] as $j) {
                     $out[] = ['external_id' => (string) ($j['id'] ?? $j['link'] ?? ''), 'title' => (string) ($j['title'] ?? ''), 'company' => $j['company'] ?? null,
                         'location' => $j['location'] ?? null, 'url' => (string) ($j['link'] ?? ''), 'description' => (string) ($j['snippet'] ?? ''),
@@ -76,6 +110,23 @@ final class Sources
         return $out;
     }
 
+    /** Plain-English report for the admin "Test" button: what the source actually returns, without saving anything. */
+    public static function diagnose(array $source): string
+    {
+        $cfg = json_decode((string) ($source['config'] ?? ''), true) ?: [];
+        if ($source['source_type'] === 'jooble') {
+            $key = (string) config('jobs.jooble_key', '');
+            if ($key === '') { return 'JOOBLE_API_KEY is not set in .env.'; }
+            $notes = [];
+            $hit = self::joobleProbe($cfg, $key, $notes);
+            return ($hit ? 'WORKS with ' . parse_url($hit[0], PHP_URL_HOST) . ' and location "' . $hit[1] . '". ' : 'NO JOBS RETURNED. ') . 'Probes: ' . implode(' | ', $notes);
+        }
+        try {
+            $items = self::fetch($source);
+            return count($items) . ' posting(s) found.' . ($items ? ' First: "' . mb_substr((string) $items[0]['title'], 0, 80) . '" (' . ($items[0]['company'] ?? 'no company') . ').' : ' Check the URL and settings (for JSON APIs: items_path and map).');
+        } catch (\Throwable $e) { return 'FAILED: ' . $e->getMessage() . (HttpClient::$lastCode ? ' (last HTTP status ' . HttpClient::$lastCode . ')' : ''); }
+    }
+
     // ---- Generic JSON API with a field map ----
     private static function jsonApi(array $s, array $cfg): array
     {
@@ -85,7 +136,13 @@ final class Sources
         if (!is_array($data)) { throw new \RuntimeException('The API did not return JSON.'); }
         $items = isset($cfg['items_path']) && $cfg['items_path'] !== '' ? self::dig($data, $cfg['items_path']) : $data;
         $m = (array) ($cfg['map'] ?? []);
-        $f = fn(array $it, string $k) => isset($m[$k]) ? self::dig($it, $m[$k]) : null;
+        $f = function (array $it, string $k) use ($m) {
+            if (!isset($m[$k])) { return null; }
+            if (is_array($m[$k])) { // several fields joined, e.g. ["job_city","job_state"]
+                return implode(', ', array_filter(array_map(fn($p) => is_scalar($v = self::dig($it, $p)) ? trim((string) $v) : '', $m[$k])));
+            }
+            return self::dig($it, $m[$k]);
+        };
         $out = [];
         foreach ((array) $items as $it) {
             if (!is_array($it)) { continue; }
