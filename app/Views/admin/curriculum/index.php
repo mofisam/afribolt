@@ -6,7 +6,9 @@ $icon = ['video' => '&#9654;', 'article' => '&#9776;', 'quiz' => '?'];
 <a class="text-sm underline text-bolt-dark" href="<?= e(url('/admin/courses')) ?>">&larr; All courses</a>
 <div class="mt-1 flex flex-wrap items-start justify-between gap-3">
   <div><h1 class="text-3xl font-extrabold">Curriculum</h1><p class="text-slate-600"><?= e($course['title']) ?> &middot; <span class="badge"><?= e($course['status']) ?></span> &middot; <?= e(str_replace('_', ' ', $course['delivery_mode'])) ?></p></div>
-  <div class="flex flex-wrap gap-2"><a class="btn btn-ghost !py-2" href="<?= e(url('/admin/courses/' . $cid . '/edit')) ?>">Course settings</a>
+  <div class="flex flex-wrap gap-2"><a class="btn btn-ghost !py-2" href="<?= e(url('/admin/courses/' . $cid . '/import')) ?>">Import outline (.txt)</a>
+    <?php if ($all > $pub): ?><form method="post" action="<?= e(url('/admin/courses/' . $cid . '/publish-all')) ?>" onsubmit="return confirm('Publish every complete draft lesson in this course?')"><?= csrf_field() ?><button class="btn btn-ghost !py-2" type="submit">Publish all drafts (<?= $all - $pub ?>)</button></form><?php endif; ?>
+    <a class="btn btn-ghost !py-2" href="<?= e(url('/admin/courses/' . $cid . '/edit')) ?>">Course settings</a>
     <?php if ($course['status'] === 'published'): ?><a class="btn btn-ghost !py-2" href="<?= e(url('/courses/' . $course['slug'])) ?>" target="_blank" rel="noopener">View public page</a><?php endif; ?></div>
 </div>
 

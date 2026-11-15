@@ -12,6 +12,7 @@ Built from the project requirements doc and `live_online_educational_platform_sc
    mysql -u root -p < database/migrations/002_announcements_instructor_author.sql
    mysql -u root -p < database/migrations/003_self_paced_learning.sql
    mysql -u root -p < database/migrations/004_jobs.sql
+   mysql -u root -p < database/migrations/005_career_launch.sql
    ```
 2. **Config**: `cp .env.example .env`, then set `DB_*`, `APP_URL`, and `SEED_ADMIN_PASSWORD`.
 3. **Seed**
@@ -138,3 +139,17 @@ Drafted from how the platform actually behaves (seat confirmed only after paymen
 - Replace TODO policy/FAQ pages with approved text. Confirm: gateway + currencies, join window, refund policy, email provider (`MailService::deliver`).
 - Add login rate-limiting by IP (current throttle is per-session) and role checks per admin role (`Auth::adminHasRole`).
 - Back up the database and test a restore.
+
+
+## Faster course building (admin)
+
+- **Quiz questions from a .txt file**: Admin > Courses > Curriculum > open a quiz lesson > "Import many questions". Sample: `/admin/import-samples/quiz`. Preview first, then append or replace.
+- **Whole course outline from a .txt file**: Curriculum > "Import outline (.txt)" (sections, videos, articles, quizzes with questions). Sample: `/admin/import-samples/outline`. Imports as drafts unless you tick "publish complete lessons".
+- **Publish all drafts**: one button on the Curriculum page (only lessons that are complete).
+- **Duplicate course**: Courses list > Duplicate (copies settings, sections, lessons, quiz questions into a new draft; uploaded files are not copied).
+- **Delete a job source**: Admin > Job sources > Delete (keeps its jobs) or "Delete + its jobs".
+- **Career Launch** (`/career-accelerator`): public programme page with the six stages, value table and founding-price registration form. Registrations land in Admin > People > Career Launch (run migration 005). The team sends the payment link, then marks the person *Paid*; the "places left" counter counts only *Paid*.
+
+## Email (SMTP)
+
+Set `MAIL_HOST`, `MAIL_PORT`, `MAIL_ENCRYPTION` (`tls` for 587, `ssl` for 465), `MAIL_USERNAME`, `MAIL_PASSWORD` and `MAIL_FROM_ADDRESS` in `.env`, then use Admin > Email log > "Send a test email". Queued emails go out through `cron/send_queued_emails.php` (run it every minute).

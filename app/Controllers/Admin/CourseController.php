@@ -100,6 +100,7 @@ class CourseController extends BaseAdminController
                 } elseif ($r['status'] !== 'archived') {
                     $a[] = ['label' => 'Publish', 'url' => url('/admin/courses/' . $r['id'] . '/status'), 'post' => true, 'fields' => ['status' => 'published']];
                 }
+                $a[] = ['label' => 'Duplicate', 'url' => url('/admin/courses/' . $r['id'] . '/duplicate'), 'post' => true, 'confirm' => 'Make a draft copy of this course, including its sections, lessons and quiz questions? (Uploaded files are not copied.)'];
                 if ($r['status'] !== 'archived') {
                     $a[] = ['label' => 'Archive', 'url' => url('/admin/courses/' . $r['id'] . '/status'), 'post' => true, 'fields' => ['status' => 'archived'], 'confirm' => 'Archive this course? It will disappear from the site.'];
                 }
@@ -190,5 +191,40 @@ class CourseController extends BaseAdminController
         Course::update((int) $c['id'], $row);
         $this->audit('course.status_changed', 'course', (int) $c['id'], ['status' => $c['status']], $row);
         $this->done("Course set to {$new}.", '/admin/courses');
+    }
+
+    /** Copy a course (settings, sections, lessons, quiz questions) into a new DRAFT. Uploaded lesson files and learner data are not copied. */
+    public function duplicate(string $id): void
+    {
+        $c = Course::find((int) $id) ?? $this->abort(404);
+        $newId = Database::transaction(function () use ($c) {
+            $row = $c;
+            foreach (['id', 'created_at', 'updated_at', 'deleted_at', 'published_at', 'lessons_count', 'total_seconds', 'rating_avg', 'rating_count', 'learners_count'] as $k) { unset($row[$k]); }
+            $row['title'] = mb_substr($c['title'], 0, 190) . ' (copy)';
+            $row['slug'] = $this->uniqueSlug('courses', $row['title']);
+            $row['status'] = 'draft';
+            $row['created_by_admin_id'] = $this->adminId();
+            $new = Course::create($row);
+
+            foreach (Database::all('SELECT * FROM course_sections WHERE course_id = ? ORDER BY position, id', [(int) $c['id']]) as $sec) {
+                $newSec = \App\Models\CourseSection::create(['course_id' => $new, 'title' => $sec['title'], 'position' => $sec['position']]);
+                foreach (Database::all('SELECT * FROM lessons WHERE section_id = ? ORDER BY position, id', [(int) $sec['id']]) as $l) {
+                    $oldLid = (int) $l['id'];
+                    foreach (['id', 'created_at', 'updated_at'] as $k) { unset($l[$k]); }
+                    $l['course_id'] = $new; $l['section_id'] = $newSec;
+                    $newLid = \App\Models\Lesson::create($l);
+                    foreach (Database::all('SELECT * FROM quiz_questions WHERE lesson_id = ? ORDER BY position, id', [$oldLid]) as $q) {
+                        $newQ = \App\Models\QuizQuestion::create(['lesson_id' => $newLid, 'question' => $q['question'], 'explanation' => $q['explanation'], 'position' => $q['position']]);
+                        foreach (Database::all('SELECT * FROM quiz_options WHERE question_id = ? ORDER BY position, id', [(int) $q['id']]) as $o) {
+                            \App\Models\QuizOption::create(['question_id' => $newQ, 'option_text' => $o['option_text'], 'is_correct' => $o['is_correct'], 'position' => $o['position']]);
+                        }
+                    }
+                }
+            }
+            return $new;
+        });
+        \App\Services\CourseCatalogService::refresh($newId);
+        $this->audit('course.duplicated', 'course', $newId, null, ['from' => (int) $c['id']]);
+        $this->done('Draft copy created. Review it, then publish when ready.', '/admin/courses/' . $newId . '/edit');
     }
 }

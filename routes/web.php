@@ -15,6 +15,7 @@ $router->get('/jobs', [JobController::class, 'index']);
 $router->get('/jobs/{slug}', [JobController::class, 'show']);
 $router->get('/jobs/{slug}/apply', [JobController::class, 'apply']);
 $router->get('/career-accelerator', [OpportunitiesController::class, 'index']);
+$router->post('/career-accelerator/register', [OpportunitiesController::class, 'register']);
 $router->get('/contact', [ContactController::class, 'show']);
 $router->post('/contact', [ContactController::class, 'submit']);
 $router->get('/faq', [PageController::class, 'faq']);

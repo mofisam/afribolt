@@ -90,6 +90,13 @@ if (!JobSource::findBy('name', 'Jooble Nigeria')) {
         'permission_note' => 'Official Jooble API (needs JOOBLE_API_KEY). Enable after adding the key.', 'fetch_interval_minutes' => 240, 'is_enabled' => 0]);
     echo "Created job source: Jooble Nigeria (disabled; add JOOBLE_API_KEY then enable)\n";
 }
+if (!JobSource::findBy('name', 'Remotive (remote jobs open to Africa)')) {
+    JobSource::create(['name' => 'Remotive (remote jobs open to Africa)', 'source_type' => 'json_api', 'endpoint_url' => 'https://remotive.com/api/remote-jobs?limit=100',
+        'config' => json_encode(['items_path' => 'jobs', 'nigeria_only' => true, 'allow_locations' => ['worldwide', 'anywhere', 'africa', 'nigeria'], 'force_work_mode' => 'remote',
+            'map' => ['id' => 'id', 'title' => 'title', 'company' => 'company_name', 'location' => 'candidate_required_location', 'url' => 'url', 'description' => 'description', 'posted_at' => 'publication_date', 'salary' => 'salary']]),
+        'permission_note' => 'Remotive public API. Terms: credit Remotive and link back to the original job; do not poll more than about 4 times a day. Confirm current terms before enabling.', 'fetch_interval_minutes' => 360, 'is_enabled' => 0]);
+    echo "Created job source: Remotive (disabled; press Test, then enable)\n";
+}
 if (!Job::findBy('slug', 'junior-php-developer-sample-employer')) {
     $cats = array_column(\App\Core\Database::all('SELECT id, slug FROM job_categories'), 'id', 'slug');
     foreach ([

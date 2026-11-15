@@ -34,6 +34,11 @@ JSearch (RapidAPI), covers Nigeria. URL: https://jsearch.p.rapidapi.com/search?q
                       {"items_path": "data", "headers": {"X-RapidAPI-Key": "{{env:RAPIDAPI_KEY}}", "X-RapidAPI-Host": "jsearch.p.rapidapi.com"},
                        "map": {"id": "job_id", "title": "job_title", "company": "employer_name", "location": ["job_city", "job_state", "job_country"], "url": "job_apply_link", "description": "job_description", "posted_at": "job_posted_at_datetime_utc"}}
                       (field names come from the provider documentation; use the Test button to confirm)
+Remotive (free, remote jobs; credit + link back required, poll at most ~4x a day; set "Check every" to 360)
+                      URL: https://remotive.com/api/remote-jobs?limit=100
+                      {"items_path": "jobs", "nigeria_only": true, "allow_locations": ["worldwide", "anywhere", "africa", "nigeria"], "force_work_mode": "remote",
+                       "map": {"id": "id", "title": "title", "company": "company_name", "location": "candidate_required_location", "url": "url", "description": "description", "posted_at": "publication_date", "salary": "salary"}}
+Keep a source Nigerian: add "nigeria_only": true (jobs are skipped unless the location is Nigerian or matches "allow_locations"). Jooble has this on by default.
 Generic JSON API:     {"items_path": "data.jobs", "headers": {"Authorization": "Bearer {{env:MY_SOURCE_KEY}}"},
                        "map": {"id": "id", "title": "title", "company": "company.name", "location": "location", "url": "apply_url", "description": "description", "posted_at": "date"}}
 JSON-LD pages:        {"urls": ["https://example.com/jobs/123"]}   or a listing page:   {"link_pattern": "/jobs/[0-9]+", "max_detail_pages": 20}
@@ -84,6 +89,10 @@ TXT;
                 ['label' => 'Run now', 'url' => url('/admin/job-sources/' . $r['id'] . '/run'), 'post' => true],
                 ['label' => $r['is_enabled'] ? 'Disable' : 'Enable', 'url' => url('/admin/job-sources/' . $r['id'] . '/toggle'), 'post' => true],
                 ['label' => 'Edit', 'url' => url('/admin/job-sources/' . $r['id'] . '/edit')],
+                ['label' => 'Delete', 'url' => url('/admin/job-sources/' . $r['id'] . '/delete'), 'post' => true,
+                    'confirm' => 'Delete the source ' . $r['name'] . '? Jobs already collected from it stay on the board (they just lose their link to the source). This cannot be undone.'],
+                ['label' => 'Delete + its jobs', 'url' => url('/admin/job-sources/' . $r['id'] . '/delete'), 'post' => true, 'fields' => ['with_jobs' => '1'],
+                    'confirm' => 'Delete the source ' . $r['name'] . ' AND all ' . (int) Database::value('SELECT COUNT(*) FROM jobs WHERE source_id = ?', [(int) $r['id']]) . ' jobs collected from it (including saved-job entries by learners)? This cannot be undone.'],
             ],
         ]);
     }
@@ -149,5 +158,19 @@ TXT;
         $msg = sprintf('%s: %d found, %d new, %d duplicates. AI processed %d (%d published, %d held for review).%s', $r['status'] === 'failed' ? 'Failed' : 'Done',
             $r['fetched'], $r['inserted'], $r['duplicates'], $ai['processed'], $ai['published'], $ai['held'], $r['message'] ? ' ' . $r['message'] : '');
         $this->done($msg, '/admin/job-sources', $r['status'] === 'failed' ? 'error' : 'success');
+    }
+
+    /** Remove a source. Its run history goes with it; collected jobs are kept unless "with_jobs" is set. */
+    public function delete(string $id): void
+    {
+        $s = JobSource::find((int) $id) ?? $this->abort(404);
+        $withJobs = $this->request->post('with_jobs') === '1';
+        $jobs = (int) Database::value('SELECT COUNT(*) FROM jobs WHERE source_id = ?', [(int) $s['id']]);
+        Database::transaction(function () use ($s, $withJobs) {
+            if ($withJobs) { Database::execute('DELETE FROM jobs WHERE source_id = ?', [(int) $s['id']]); }
+            JobSource::delete((int) $s['id']); // job_runs cascade; remaining jobs get source_id = NULL (their "via ..." name is kept)
+        });
+        $this->audit('job_source.deleted', 'job_source', (int) $s['id'], null, ['name' => $s['name'], 'type' => $s['source_type'], 'jobs' => $jobs, 'jobs_deleted' => $withJobs ? 1 : 0]);
+        $this->done('Source "' . $s['name'] . '" deleted' . ($withJobs ? " along with {$jobs} job(s)." : ($jobs ? ". Its {$jobs} job(s) were kept on the board." : '.')), '/admin/job-sources');
     }
 }

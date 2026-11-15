@@ -56,7 +56,7 @@ ob_start(); ?>
 <?php $sections['how'] = ['How to ask for a refund', ob_get_clean()];
 
 ob_start(); ?>
-<p>Career Accelerator consultations are free. For any paid career service, the scope, price and refund terms are agreed with you in writing before you pay. <?= $todo('Confirm refund terms for paid career services.') ?> Services that have already been delivered, such as a completed CV review, are not refundable.</p>
+<p>Career Accelerator consultations are free. For <strong>Career Launch</strong> (the founding-price programme), refunds are available only <strong>before any stage work begins</strong>. Once you start a stage, the fee for work already delivered is not refundable. For any other paid career service, the scope, price and refund terms are agreed with you in writing before you pay. Services that have already been delivered, such as a completed CV review, are not refundable.</p>
 <?php $sections['career'] = ['Career Accelerator services', ob_get_clean()];
 
 ob_start(); ?>

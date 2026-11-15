@@ -3,7 +3,7 @@ namespace App\Controllers\Admin;
 
 use App\Core\{Database, Session};
 use App\Models\{Course, CourseSection, Lesson, LessonResource, QuizOption, QuizQuestion};
-use App\Services\{CourseCatalogService, LearningService, VideoService};
+use App\Services\{CourseCatalogService, CourseOutlineImportService, LearningService, QuizImportService, VideoService};
 
 /** Build a self-paced course: sections -> lessons (video / article / quiz), downloadable resources, quiz questions. */
 class CurriculumController extends BaseAdminController
@@ -251,5 +251,110 @@ class CurriculumController extends BaseAdminController
         $left = (int) Database::value('SELECT COUNT(*) FROM quiz_questions WHERE lesson_id = ?', [(int) $q['lesson_id']]);
         if ($left === 0) { Lesson::update((int) $q['lesson_id'], ['status' => 'draft']); $this->after((int) Lesson::find((int) $q['lesson_id'])['course_id']); }
         $this->done('Question deleted.' . ($left === 0 ? ' The quiz was set back to draft because it has no questions.' : ''), '/admin/lessons/' . $q['lesson_id'] . '/edit#quiz');
+    }
+
+    // ---------- quiz question import (text file) ----------
+    private function quizLesson(string $id): array
+    {
+        $l = Lesson::find((int) $id) ?? $this->abort(404);
+        if ($l['lesson_type'] !== 'quiz') { $this->abort(404); }
+        return $l;
+    }
+
+    /** Read the text from the upload / textarea, parse it, and show a preview (nothing is saved yet). */
+    public function importQuestions(string $id): void
+    {
+        $l = $this->quizLesson($id);
+        $back = '/admin/lessons/' . $l['id'] . '/edit#quiz';
+        [$text, $err] = QuizImportService::readInput($this->request->file('qfile'), (string) $this->request->post('text', ''));
+        if ($text === null) { $this->done($err, $back, 'error'); }
+        $this->page('admin/curriculum/import-questions', [
+            'title' => 'Import questions', 'lesson' => $l, 'course' => $this->course((string) $l['course_id']), 'text' => $text,
+            'result' => QuizImportService::parse($text), 'mode' => $this->request->post('mode') === 'replace' ? 'replace' : 'append',
+            'existing' => (int) Database::value('SELECT COUNT(*) FROM quiz_questions WHERE lesson_id = ?', [(int) $l['id']]),
+        ]);
+    }
+
+    public function saveQuestions(string $id): void
+    {
+        $l = $this->quizLesson($id);
+        $back = '/admin/lessons/' . $l['id'] . '/edit#quiz';
+        $r = QuizImportService::parse((string) $this->request->post('text', ''));
+        if ($r['errors'] || !$r['questions']) { $this->done('The file still has problems. Nothing was imported.', $back, 'error'); }
+        $replace = $this->request->post('mode') === 'replace';
+        $added = Database::transaction(function () use ($l, $r, $replace) {
+            if ($replace) { Database::execute('DELETE FROM quiz_questions WHERE lesson_id = ?', [(int) $l['id']]); }
+            $start = (int) Database::value('SELECT COALESCE(MAX(position), 0) FROM quiz_questions WHERE lesson_id = ?', [(int) $l['id']]);
+            return CourseOutlineImportService::saveQuestions((int) $l['id'], $r['questions'], $start);
+        });
+        $this->audit('quiz.questions_imported', 'lesson', (int) $l['id'], null, ['count' => $added, 'mode' => $replace ? 'replace' : 'append']);
+        $this->done($added . ' question' . ($added === 1 ? '' : 's') . ($replace ? ' imported (old ones replaced).' : ' imported.'), $back);
+    }
+
+    public function deleteAllQuestions(string $id): void
+    {
+        $l = $this->quizLesson($id);
+        Database::execute('DELETE FROM quiz_questions WHERE lesson_id = ?', [(int) $l['id']]);
+        Lesson::update((int) $l['id'], ['status' => 'draft']);
+        $this->after((int) $l['course_id']);
+        $this->audit('quiz.questions_cleared', 'lesson', (int) $l['id'], null, []);
+        $this->done('All questions deleted. The quiz was set back to draft.', '/admin/lessons/' . $l['id'] . '/edit#quiz');
+    }
+
+    private function download(string $name, string $body): never
+    {
+        header('Content-Type: text/plain; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $name . '"');
+        header('X-Content-Type-Options: nosniff');
+        echo $body;
+        exit;
+    }
+    public function sampleQuiz(): void { $this->download('afribolt-quiz-sample.txt', QuizImportService::SAMPLE); }
+    public function sampleOutline(): void { $this->download('afribolt-course-outline-sample.txt', CourseOutlineImportService::SAMPLE); }
+
+    // ---------- whole-course outline import ----------
+    public function importOutlineForm(string $id): void
+    {
+        $course = $this->course($id);
+        $this->page('admin/curriculum/import-outline', ['title' => 'Import course outline', 'course' => $course, 'text' => '', 'result' => null, 'publish' => false]);
+    }
+
+    public function importOutline(string $id): void
+    {
+        $course = $this->course($id);
+        [$text, $err] = QuizImportService::readInput($this->request->file('ofile'), (string) $this->request->post('text', ''));
+        if ($text === null) { $this->done($err, '/admin/courses/' . $course['id'] . '/import', 'error'); }
+        $this->page('admin/curriculum/import-outline', [
+            'title' => 'Import course outline', 'course' => $course, 'text' => $text, 'result' => CourseOutlineImportService::parse($text),
+            'publish' => $this->request->post('publish') === '1',
+        ]);
+    }
+
+    public function saveOutline(string $id): void
+    {
+        $course = $this->course($id);
+        $r = CourseOutlineImportService::parse((string) $this->request->post('text', ''));
+        if ($r['errors'] || !$r['lesson_count']) { $this->done('The outline still has problems. Nothing was imported.', '/admin/courses/' . $course['id'] . '/import', 'error'); }
+        $out = CourseOutlineImportService::save((int) $course['id'], $r, $this->request->post('publish') === '1');
+        $this->audit('course.outline_imported', 'course', (int) $course['id'], null, $out);
+        $this->after((int) $course['id']);
+        $this->done(sprintf('Imported %d section(s), %d lesson(s) and %d quiz question(s). %d lesson(s) published, the rest are drafts.', $out['sections'], $out['lessons'], $out['questions'], $out['published']),
+            '/admin/courses/' . $course['id'] . '/curriculum');
+    }
+
+    /** Publish every draft lesson that is complete (video with link, article with text, quiz with questions). */
+    public function publishAll(string $id): void
+    {
+        $course = $this->course($id);
+        $n = Database::execute(
+            "UPDATE lessons SET status = 'published' WHERE course_id = ? AND status = 'draft' AND (
+                (lesson_type = 'video' AND video_url IS NOT NULL AND video_url <> '')
+                OR (lesson_type = 'article' AND content IS NOT NULL AND content <> '')
+                OR (lesson_type = 'quiz' AND id IN (SELECT lesson_id FROM quiz_questions))
+            )", [(int) $course['id']]);
+        $skipped = (int) Database::value("SELECT COUNT(*) FROM lessons WHERE course_id = ? AND status = 'draft'", [(int) $course['id']]);
+        $this->audit('course.lessons_published', 'course', (int) $course['id'], null, ['count' => $n]);
+        $this->after((int) $course['id']);
+        $this->done($n . ' lesson(s) published.' . ($skipped ? " {$skipped} still draft (incomplete: missing link, text or questions)." : ''), '/admin/courses/' . $course['id'] . '/curriculum', $n ? 'success' : 'error');
     }
 }

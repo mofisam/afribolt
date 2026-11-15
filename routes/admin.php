@@ -26,6 +26,7 @@ $router->group(['prefix' => '/admin', 'middleware' => [AdminAuth::class]], funct
     $r->get('/courses/{id}/edit', [A\CourseController::class, 'edit']);
     $r->post('/courses/{id}', [A\CourseController::class, 'update']);
     $r->post('/courses/{id}/status', [A\CourseController::class, 'status']);
+    $r->post('/courses/{id}/duplicate', [A\CourseController::class, 'duplicate']);
 
     // Curriculum builder (self-paced)
     $r->get('/courses/{id}/curriculum', [A\CurriculumController::class, 'index']);
@@ -43,6 +44,21 @@ $router->group(['prefix' => '/admin', 'middleware' => [AdminAuth::class]], funct
     $r->post('/resources/{id}/delete', [A\CurriculumController::class, 'deleteResource']);
     $r->post('/lessons/{id}/questions', [A\CurriculumController::class, 'addQuestion']);
     $r->post('/questions/{id}/delete', [A\CurriculumController::class, 'deleteQuestion']);
+    // Text-file imports (quiz questions / whole course outline) + sample downloads
+    $r->post('/lessons/{id}/questions/import', [A\CurriculumController::class, 'importQuestions']);
+    $r->post('/lessons/{id}/questions/import/save', [A\CurriculumController::class, 'saveQuestions']);
+    $r->post('/lessons/{id}/questions/delete-all', [A\CurriculumController::class, 'deleteAllQuestions']);
+    $r->get('/courses/{id}/import', [A\CurriculumController::class, 'importOutlineForm']);
+    $r->post('/courses/{id}/import', [A\CurriculumController::class, 'importOutline']);
+    $r->post('/courses/{id}/import/save', [A\CurriculumController::class, 'saveOutline']);
+    $r->post('/courses/{id}/publish-all', [A\CurriculumController::class, 'publishAll']);
+    $r->get('/import-samples/quiz', [A\CurriculumController::class, 'sampleQuiz']);
+    $r->get('/import-samples/outline', [A\CurriculumController::class, 'sampleOutline']);
+
+    // Career Launch registrations
+    $r->get('/career-launch', [A\CareerLaunchController::class, 'index']);
+    $r->post('/career-launch/{id}/status', [A\CareerLaunchController::class, 'status']);
+    $r->post('/career-launch/{id}/delete', [A\CareerLaunchController::class, 'delete']);
 
     // Jobs board
     $r->get('/jobs', [A\JobController::class, 'index']);
@@ -62,6 +78,7 @@ $router->group(['prefix' => '/admin', 'middleware' => [AdminAuth::class]], funct
     $r->post('/job-sources/{id}/toggle', [A\JobSourceController::class, 'toggle']);
     $r->post('/job-sources/{id}/run', [A\JobSourceController::class, 'run']);
     $r->post('/job-sources/{id}/test', [A\JobSourceController::class, 'test']);
+    $r->post('/job-sources/{id}/delete', [A\JobSourceController::class, 'delete']);
 
     // Reviews + self-paced learners
     $r->get('/reviews', [A\ReviewController::class, 'index']);
@@ -126,6 +143,7 @@ $router->group(['prefix' => '/admin', 'middleware' => [AdminAuth::class]], funct
     $r->get('/reports/export', [A\ReportController::class, 'export']);
     $r->get('/audit-logs', [A\AuditLogController::class, 'index']);
     $r->get('/email-logs', [A\EmailLogController::class, 'index']);
+    $r->post('/email-logs/test', [A\EmailLogController::class, 'test']);
     $r->post('/email-logs/{id}/retry', [A\EmailLogController::class, 'retry']);
 
     // Gateways + settings + admin accounts

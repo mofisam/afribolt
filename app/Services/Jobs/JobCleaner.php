@@ -52,6 +52,20 @@ final class JobCleaner
         return [null, null];
     }
 
+    /** Does this location text point to Nigeria? (a Nigerian state/city, the word "Nigeria", or an allowed region such as "worldwide"/"africa" for remote jobs) */
+    public static function isNigerian(?string $location, array $cfg = []): bool
+    {
+        $loc = mb_strtolower(trim((string) $location));
+        if ($loc === '') { return false; }
+        if (str_contains($loc, 'nigeria')) { return true; }
+        [$state] = self::place($loc);
+        if ($state) { return true; }
+        foreach ((array) ($cfg['allow_locations'] ?? []) as $a) {
+            if ($a !== '' && str_contains($loc, mb_strtolower((string) $a))) { return true; }
+        }
+        return false;
+    }
+
     public static function workMode(string $t): string
     {
         $t = mb_strtolower($t);

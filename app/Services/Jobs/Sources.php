@@ -76,9 +76,13 @@ final class Sources
                 $label = parse_url($base, PHP_URL_HOST) . ' / location "' . $loc . '"';
                 try {
                     $res = self::joobleCall($base, $key, ['keywords' => $kw, 'location' => $loc, 'page' => 1]);
-                    $n = count($res['jobs'] ?? []);
-                    $notes[] = "{$label}: HTTP " . HttpClient::$lastCode . ", {$n} jobs (total " . ($res['totalCount'] ?? '?') . ')' . (isset($res['error']) ? ' error=' . json_encode($res['error']) : '');
-                    if ($n > 0) { return [$base, $loc]; }
+                    $jobs = (array) ($res['jobs'] ?? []);
+                    $n = count($jobs);
+                    $ng = count(array_filter($jobs, fn($j) => JobCleaner::isNigerian($j['location'] ?? '', $cfg)));
+                    $sample = implode('; ', array_slice(array_filter(array_map(fn($j) => (string) ($j['location'] ?? ''), $jobs)), 0, 3));
+                    $notes[] = "{$label}: HTTP " . HttpClient::$lastCode . ", {$n} jobs (total " . ($res['totalCount'] ?? '?') . "), {$ng} in Nigeria" . ($n > 0 && $ng === 0 ? " (e.g. {$sample})" : '')
+                        . (isset($res['error']) ? ' error=' . json_encode($res['error']) : '');
+                    if ($ng > 0) { return [$base, $loc]; }
                 } catch (\Throwable $e) { $notes[] = "{$label}: " . $e->getMessage(); }
             }
         }
@@ -92,7 +96,7 @@ final class Sources
         $notes = [];
         $probe = self::joobleProbe($cfg, $key, $notes);
         if (!$probe) {
-            throw new \RuntimeException('Jooble returned no jobs. Tried: ' . implode(' | ', $notes) . '. Check that your Jooble key is enabled for Nigeria, or use another source type.');
+            throw new \RuntimeException('Jooble answered but returned no Nigerian jobs, so nothing was imported. Your key does not seem to include Nigeria: ask Jooble to enable it, or use another source. Tried: ' . implode(' | ', $notes));
         }
         [$base, $loc] = $probe;
         $out = [];
@@ -119,7 +123,7 @@ final class Sources
             if ($key === '') { return 'JOOBLE_API_KEY is not set in .env.'; }
             $notes = [];
             $hit = self::joobleProbe($cfg, $key, $notes);
-            return ($hit ? 'WORKS with ' . parse_url($hit[0], PHP_URL_HOST) . ' and location "' . $hit[1] . '". ' : 'NO JOBS RETURNED. ') . 'Probes: ' . implode(' | ', $notes);
+            return ($hit ? 'WORKS with ' . parse_url($hit[0], PHP_URL_HOST) . ' and location "' . $hit[1] . '" (Nigerian jobs found). ' : 'NO NIGERIAN JOBS RETURNED: Jooble answers, but not with jobs in Nigeria for this key. ') . 'Probes: ' . implode(' | ', $notes);
         }
         try {
             $items = self::fetch($source);

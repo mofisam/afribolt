@@ -16,11 +16,14 @@ try {
     if ($me('admin', 'content_manager')) {
         $alerts['jobs'] = (int) Database::value("SELECT COUNT(*) FROM jobs WHERE status = 'pending'") + (int) Database::value("SELECT COUNT(*) FROM job_reports WHERE status = 'open'");
     }
+    if ($me('admin', 'finance_manager')) {
+        $alerts['career-launch'] = (int) Database::value("SELECT COUNT(*) FROM career_launch_registrations WHERE status = 'new'");
+    }
     if ($me('admin')) {
         $alerts['email-logs'] = (int) Database::value("SELECT COUNT(*) FROM email_logs WHERE status = 'failed'");
     }
 } catch (\Throwable $e) { $alerts = []; }
-$alertHint = ['enrolments' => 'need review', 'sessions' => 'classes this week have no meeting link', 'email-logs' => 'failed emails', 'jobs' => 'jobs or reports to review'];
+$alertHint = ['enrolments' => 'need review', 'sessions' => 'classes this week have no meeting link', 'email-logs' => 'failed emails', 'jobs' => 'jobs or reports to review', 'career-launch' => 'new Career Launch registrations'];
 
 $icons = [
   '' => '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>',
@@ -43,6 +46,7 @@ $icons = [
   'learners' => '<circle cx="12" cy="12" r="10"/><path d="M10 8l6 4-6 4z"/>',
   'jobs' => '<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>',
   'job-sources' => '<path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/>',
+  'career-launch' => '<path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/>',
   'admin-users' => '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
 ];
 $ico = fn(string $slug) => '<svg class="adm-ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' . ($icons[$slug] ?? '') . '</svg>';
@@ -56,7 +60,7 @@ $groups = [
                  ['reviews', 'Reviews', ['admin', 'content_manager']]],
   'Jobs'     => [['jobs', 'Jobs', ['admin', 'content_manager']], ['job-sources', 'Job sources', ['admin']]],
   'People'   => [['students', 'Students', ['admin', 'finance_manager', 'content_manager']], ['enrolments', 'Enrolments', ['admin', 'finance_manager']],
-                 ['learners', 'Self-paced learners', ['admin', 'finance_manager']], ['instructors', 'Instructors', ['admin']]],
+                 ['learners', 'Self-paced learners', ['admin', 'finance_manager']], ['career-launch', 'Career Launch', ['admin', 'finance_manager']], ['instructors', 'Instructors', ['admin']]],
   'Money'    => [['payments', 'Payments', ['admin', 'finance_manager']], ['reports', 'Reports', ['admin', 'finance_manager']], ['gateways', 'Gateways', ['finance_manager']]],
   'System'   => [['audit-logs', 'Audit log', ['admin']], ['email-logs', 'Email log', ['admin']], ['settings', 'Settings', ['admin']], ['admin-users', 'Admin users', []]],
 ];

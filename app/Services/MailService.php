@@ -20,7 +20,7 @@ class MailService
         return $id;
     }
 
-    /** Send up to $limit queued emails. Replace deliver() with SMTP/API once the provider is chosen. */
+    /** Send up to $limit queued emails. Delivery is SMTP when MAIL_HOST is set in .env, otherwise PHP mail(). */
     public function sendQueued(int $limit = 25): int
     {
         $max = (int) config('mail.max_attempts', 3);
@@ -45,10 +45,23 @@ class MailService
         return $sent;
     }
 
+    /** Send one email immediately (used by the admin "Send test email" button). Throws on failure. */
+    public function sendNow(string $to, string $subject, string $html): void
+    {
+        if (!$this->deliver($to, $subject, $html)) { throw new \RuntimeException('mail() returned false. Configure SMTP in .env (see MAIL_HOST).'); }
+    }
+
     protected function deliver(string $to, string $subject, string $html): bool
     {
-        $from = config('mail.from_address');
-        $name = config('mail.from_name');
+        $from = (string) config('mail.from_address');
+        $name = (string) config('mail.from_name');
+        if (config('mail.driver') === 'smtp') {
+            $host = (string) config('mail.host');
+            if ($host === '') { throw new \RuntimeException('MAIL_DRIVER is smtp but MAIL_HOST is empty in .env.'); }
+            (new SmtpMailer($host, (int) config('mail.port'), (string) config('mail.encryption'), (string) config('mail.username'), (string) config('mail.password'), (int) config('mail.timeout')))
+                ->send($from, $name, $to, $subject, $html);
+            return true;
+        }
         $headers = "MIME-Version: 1.0\r\nContent-Type: text/html; charset=UTF-8\r\nFrom: {$name} <{$from}>\r\n";
         return mail($to, $subject, $html, $headers);
     }

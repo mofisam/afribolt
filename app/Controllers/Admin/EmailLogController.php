@@ -15,7 +15,11 @@ class EmailLogController extends BaseAdminController
         [$rows, $pager] = $this->paged('email_logs WHERE ' . implode(' AND ', $where), $p, '*', 'id DESC', 30);
         $this->page('admin/crud/index', [
             'title' => 'Email log', 'rows' => $rows, 'pager' => $pager,
-            'intro' => 'Emails are queued here and sent by <code>cron/send_queued_emails.php</code>. Failed emails keep their rendered message so you can retry.',
+            'intro' => '<p>Emails are queued here and sent by <code>cron/send_queued_emails.php</code>. Failed emails keep their rendered message so you can retry.</p>'
+                . '<p class="mt-2"><strong>Sending method:</strong> ' . (config('mail.driver') === 'smtp' ? 'SMTP via ' . e((string) config('mail.host')) . ':' . (int) config('mail.port') . ' (' . e((string) config('mail.encryption')) . ')' : '<span class="text-red-700 font-bold">PHP mail() (set MAIL_HOST in .env to use SMTP)</span>') . '</p>'
+                . '<form method="post" action="' . e(url('/admin/email-logs/test')) . '" class="mt-3 flex flex-wrap items-end gap-2">' . csrf_field()
+                . '<div><label class="label text-sm" for="test_to">Send a test email to</label><input class="field" type="email" id="test_to" name="to" required placeholder="you@example.com"></div>'
+                . '<button class="btn btn-ghost" type="submit">Send test</button></form>',
             'filters' => [['name' => 'q', 'label' => 'Recipient or subject'], ['name' => 'status', 'label' => 'Status', 'type' => 'select', 'options' => ['queued' => 'Queued', 'sent' => 'Sent', 'failed' => 'Failed']]],
             'columns' => [
                 ['label' => 'Queued', 'render' => fn($r) => local_date($r['queued_at'], null, 'j M, g:i A')],
@@ -28,6 +32,19 @@ class EmailLogController extends BaseAdminController
             ],
             'actions' => fn($r) => $r['status'] === 'failed' ? [['label' => 'Retry', 'url' => url('/admin/email-logs/' . $r['id'] . '/retry'), 'post' => true]] : [],
         ]);
+    }
+
+    /** Send a real email right now so SMTP settings can be checked without waiting for cron. */
+    public function test(): void
+    {
+        $to = trim((string) $this->request->post('to', ''));
+        if (!filter_var($to, FILTER_VALIDATE_EMAIL)) { $this->done('Enter a valid email address.', '/admin/email-logs', 'error'); }
+        try {
+            (new \App\Services\MailService())->sendNow($to, 'AfriBolt test email', '<p>This is a test email from your AfriBolt platform. If you can read it, email sending works.</p>');
+        } catch (\Throwable $e) {
+            $this->done('Test failed: ' . $e->getMessage(), '/admin/email-logs', 'error');
+        }
+        $this->done('Test email sent to ' . $to . '. Check the inbox (and spam folder).', '/admin/email-logs');
     }
 
     public function retry(string $id): void

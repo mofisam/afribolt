@@ -78,6 +78,35 @@ fenced code block
       <div><label class="label" for="explanation">Explanation shown after answering (optional)</label><input class="field" id="explanation" name="explanation"></div>
       <button class="btn btn-ghost" type="submit">Add question</button>
     </form>
+
+    <div class="mt-6 border-t pt-5">
+      <h3 class="font-bold">Import many questions from a text file</h3>
+      <p class="text-sm text-slate-600">Write all your questions in a .txt file (or paste them) and add them in one go. You get a preview before anything is saved.
+        <a class="underline text-bolt-dark" href="<?= e(url('/admin/import-samples/quiz')) ?>">Download a sample file</a></p>
+      <form method="post" action="<?= e(url('/admin/lessons/' . $lid . '/questions/import')) ?>" enctype="multipart/form-data" class="mt-3 space-y-3"><?= csrf_field() ?>
+        <div><label class="label" for="qfile">Text file (.txt)</label><input class="field" type="file" id="qfile" name="qfile" accept=".txt,.text,.md,text/plain"></div>
+        <div><label class="label" for="qtext">&hellip;or paste the text</label><textarea class="field font-mono text-sm" id="qtext" name="text" rows="5" placeholder="Q: What does CRM stand for?&#10;A) Customer Relationship Management *&#10;B) Customer Revenue Model&#10;C) Central Record Manager"></textarea></div>
+        <fieldset><legend class="label">Existing questions</legend>
+          <label class="inline-flex items-center gap-2 mr-4"><input type="radio" name="mode" value="append" checked> Keep and add after</label>
+          <label class="inline-flex items-center gap-2"><input type="radio" name="mode" value="replace"> Replace them</label></fieldset>
+        <button class="btn btn-ghost" type="submit">Preview import</button>
+      </form>
+      <details class="mt-3 text-sm"><summary class="cursor-pointer underline text-bolt-dark">File format</summary>
+        <pre class="mt-2 bg-slate-100 p-3 rounded whitespace-pre-wrap">Q: What does CRM stand for?
+A) Customer Relationship Management *
+B) Customer Revenue Model
+C) Central Record Manager
+Explanation: Optional text shown after answering.
+
+Q: Another question?
+A) First option
+B) Second option
+Answer: B</pre>
+        <p class="mt-2 text-slate-600">Mark the right option with a <strong>*</strong> at the end, or add an <strong>Answer: B</strong> line. 2 to 8 options (A to H). Blank lines are fine. Lines starting with # are ignored.</p></details>
+      <?php if ($questions): ?>
+        <form method="post" action="<?= e(url('/admin/lessons/' . $lid . '/questions/delete-all')) ?>" class="mt-4" onsubmit="return confirm('Delete ALL <?= count($questions) ?> questions in this quiz? The quiz goes back to draft.')"><?= csrf_field() ?><button class="underline text-red-700 text-sm">Delete all questions</button></form>
+      <?php endif; ?>
+    </div>
   </section>
   <?php endif; ?>
 

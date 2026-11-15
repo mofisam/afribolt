@@ -53,10 +53,16 @@ class JobIngestService
         $deadline = JobCleaner::date(is_string($r['deadline'] ?? null) ? $r['deadline'] : null);
         if (($posted && $posted < gmdate('Y-m-d H:i:s', time() - $staleDays * 86400)) || ($deadline && $deadline < utc_now())) { return 'skipped'; }
 
+        // Keep a Nigerian board Nigerian: Jooble defaults to Nigeria-only; any source can opt in with {"nigeria_only": true}
+        $cfg = json_decode((string) ($s['config'] ?? ''), true) ?: [];
+        $onlyNg = (bool) ($cfg['nigeria_only'] ?? ($s['source_type'] === 'jooble'));
+        if ($onlyNg && !JobCleaner::isNigerian(trim((string) ($r['location'] ?? '')) . ' ' . $title, $cfg)) { return 'skipped'; }
+
         $job = ['title' => $title, 'company' => ($c = JobCleaner::line($r['company'] ?? '', 200)) !== '' ? $c : null,
             'location_text' => ($l = JobCleaner::line($r['location'] ?? '', 250)) !== '' ? $l : null, 'description' => JobCleaner::text($r['description'] ?? '', 6000),
             'salary_text' => ($t = JobCleaner::line($r['salary_text'] ?? '', 150)) !== '' ? $t : null];
         $x = JobClassifier::rules($job);
+        if (in_array($cfg['force_work_mode'] ?? '', ['remote', 'hybrid', 'onsite'], true)) { $x['work_mode'] = $cfg['force_work_mode']; }
         $canonical = JobCleaner::canonical($title, $job['company'], $x['state']);
         if (Database::value("SELECT COUNT(*) FROM jobs WHERE canonical_hash = ? AND status <> 'rejected'", [$canonical])) { return 'duplicates'; }
 
