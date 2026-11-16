@@ -28,4 +28,33 @@ class NotificationService
     {
         return (int) Database::value('SELECT COUNT(*) FROM notifications WHERE user_id = ? AND read_at IS NULL', [$userId]);
     }
+
+    /**
+     * Number shown on the notification bell: unread notifications (cohort announcements arrive as notifications)
+     * plus general announcements the student has not opened yet.
+     */
+    public function badgeCount(int $userId): int
+    {
+        $n = $this->unreadCount($userId);
+        try { $n += $this->unseenAnnouncements($userId); } catch (\Throwable $e) { /* migration 006 not run yet */ }
+        return $n;
+    }
+
+    /** General (non-cohort) announcements published since the student last opened their notifications page. */
+    public function unseenAnnouncements(int $userId): int
+    {
+        return (int) Database::value(
+            "SELECT COUNT(*) FROM announcements a JOIN users u ON u.id = ?
+             WHERE a.status = 'published' AND a.cohort_id IS NULL AND a.visibility IN ('public','enrolled_students')
+               AND (a.publish_at IS NULL OR a.publish_at <= UTC_TIMESTAMP())
+               AND (a.expires_at IS NULL OR a.expires_at > UTC_TIMESTAMP())
+               AND COALESCE(a.publish_at, a.created_at) > COALESCE(u.announcements_seen_at, u.created_at)",
+            [$userId]
+        );
+    }
+
+    public function markAnnouncementsSeen(int $userId): void
+    {
+        Database::execute('UPDATE users SET announcements_seen_at = UTC_TIMESTAMP() WHERE id = ?', [$userId]);
+    }
 }

@@ -2,7 +2,7 @@
 use App\Core\{Auth, Request, View};
 $path = Request::capture()->path();
 $unread = 0;
-try { $unread = (new App\Services\NotificationService())->unreadCount((int) Auth::id('student')); } catch (\Throwable $e) {}
+try { $unread = (new App\Services\NotificationService())->badgeCount((int) Auth::id('student')); } catch (\Throwable $e) {}
 $icons = [
   'dash' => '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/>',
   'learn' => '<circle cx="12" cy="12" r="10"/><path d="M10 8l6 4-6 4z"/>',
@@ -24,11 +24,14 @@ $cur = fn(string $href) => $path === $href || ($href !== '/courses' && str_start
     <a href="<?= e(url('/student/dashboard')) ?>" aria-label="My dashboard"><?= View::partial('partials/logo', ['width' => 130]) ?></a>
     <nav class="hidden md:flex items-center gap-6" aria-label="Student">
       <a class="nav-link" href="<?= e(url('/courses')) ?>">Courses</a>
-      <?php foreach ($tabs as [$href, $label]): ?>
+      <?php foreach ($tabs as [$href, $label]): if ($href === '/student/notifications') { continue; } /* the bell in the header replaces this link */ ?>
         <a class="nav-link" href="<?= e(url($href)) ?>" <?= $cur($href) ? 'aria-current="page"' : '' ?>><?= e(['Home' => 'Dashboard', 'Learning' => 'My learning', 'Alerts' => 'Notifications'][$label] ?? $label) ?><?php if ($href === '/student/notifications' && $unread): ?> <span class="adm-badge"><?= (int) $unread ?></span><?php endif; ?></a>
       <?php endforeach; ?>
     </nav>
-    <form method="post" action="<?= e(url('/logout')) ?>"><?= csrf_field() ?><button class="btn btn-ghost !py-1.5 !px-3 text-sm" type="submit">Log out</button></form>
+    <div class="flex items-center gap-2">
+      <?= View::partial('partials/bell', ['count' => $unread]) ?>
+      <form method="post" action="<?= e(url('/logout')) ?>"><?= csrf_field() ?><button class="btn btn-ghost !py-1.5 !px-3 text-sm" type="submit">Log out</button></form>
+    </div>
   </div>
 </header>
 <main id="main" class="max-w-5xl mx-auto px-4 py-6 md:py-8">

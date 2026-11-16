@@ -72,8 +72,11 @@ class JobController extends BaseAdminController
         $pending = (int) Database::value("SELECT COUNT(*) FROM jobs WHERE status = 'pending'");
         $unprocessed = (int) Database::value("SELECT COUNT(*) FROM jobs WHERE status = 'pending' AND ai_status IN ('none','failed')");
         $reports = (int) Database::value("SELECT COUNT(*) FROM job_reports WHERE status = 'open'");
+        $ready = (int) Database::value("SELECT COUNT(*) FROM jobs WHERE status = 'pending' AND (deadline_at IS NULL OR deadline_at > UTC_TIMESTAMP())");
+        $flagged = (int) Database::value("SELECT COUNT(*) FROM jobs WHERE status = 'pending' AND scam_risk >= 40 AND (deadline_at IS NULL OR deadline_at > UTC_TIMESTAMP())");
         $intro = '<div class="flex flex-wrap gap-3 items-center bg-white border rounded-lg p-4 text-sm"><span><strong>' . $pending . '</strong> need review &middot; <strong>' . $unprocessed . '</strong> waiting for AI &middot; <a class="underline text-bolt-dark" href="' . e(url('/admin/jobs/reports')) . '"><strong>' . $reports . '</strong> open report(s)</a></span>'
-            . '<form method="post" action="' . e(url('/admin/jobs/process-ai')) . '">' . csrf_field() . '<button class="btn btn-ghost !py-1.5" type="submit">' . (AiService::enabled() ? 'Process waiting jobs with AI now' : 'Process waiting jobs (rules only, no AI key)') . '</button></form></div>';
+            . '<form method="post" action="' . e(url('/admin/jobs/process-ai')) . '">' . csrf_field() . '<button class="btn btn-ghost !py-1.5" type="submit">' . (AiService::enabled() ? 'Process waiting jobs with AI now' : 'Process waiting jobs (rules only, no AI key)') . '</button></form>'
+            . ($ready ? $this->publishPendingForm($ready, $flagged) : '') . '</div>';
 
         $this->page('admin/crud/index', [
             'title' => 'Jobs', 'createUrl' => url('/admin/jobs/create'), 'createLabel' => 'Post a job', 'rows' => $rows, 'pager' => $pager, 'intro' => $intro,
@@ -96,6 +99,33 @@ class JobController extends BaseAdminController
                 return $a;
             },
         ]);
+    }
+
+    private function publishPendingForm(int $ready, int $flagged): string
+    {
+        $form = function (string $label, string $mode, string $confirm, string $cls) {
+            return '<form method="post" action="' . e(url('/admin/jobs/publish-pending')) . '" onsubmit="return confirm(' . e(json_encode($confirm)) . ')">' . csrf_field()
+                . '<input type="hidden" name="mode" value="' . e($mode) . '"><button class="btn ' . $cls . ' !py-1.5" type="submit">' . e($label) . '</button></form>';
+        };
+        $out = $form("Publish all pending ({$ready})", 'all',
+            "Publish all {$ready} pending job(s) now?" . ($flagged ? " {$flagged} of them are flagged as risky (risk 40 or more) and will go live too." : '') . ' Jobs whose deadline has passed are skipped.', 'btn-primary');
+        if ($flagged && $ready - $flagged > 0) {
+            $out .= $form('Publish all except flagged (' . ($ready - $flagged) . ')', 'safe', 'Publish ' . ($ready - $flagged) . ' pending job(s) and leave the ' . $flagged . ' flagged ones for review?', 'btn-ghost');
+        }
+        return $out;
+    }
+
+    /** Publish every job waiting for review in one go (optionally leaving risky ones). Expired deadlines are skipped. */
+    public function publishPending(): void
+    {
+        $safe = $this->request->post('mode') === 'safe';
+        $n = Database::execute(
+            "UPDATE jobs SET status = 'published', published_at = COALESCE(published_at, UTC_TIMESTAMP())
+             WHERE status = 'pending' AND (deadline_at IS NULL OR deadline_at > UTC_TIMESTAMP())" . ($safe ? ' AND scam_risk < 40' : '')
+        );
+        $left = (int) Database::value("SELECT COUNT(*) FROM jobs WHERE status = 'pending'");
+        $this->audit('jobs.publish_pending', 'job', null, null, ['published' => $n, 'skipped_flagged' => $safe ? 1 : 0]);
+        $this->done($n . ' job(s) published.' . ($left ? " {$left} still waiting for review." : ' Nothing is waiting for review.'), '/admin/jobs', $n ? 'success' : 'error');
     }
 
     public function create(): void

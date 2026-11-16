@@ -15,7 +15,7 @@ $n = 0;
   <a href="<?= e(url('/student/learning')) ?>" class="shrink-0 font-bold" aria-label="Back to my learning">&lsaquo; <span class="hidden sm:inline">My learning</span></a>
   <span class="w-px h-6 bg-white/30 shrink-0" aria-hidden="true"></span>
   <a href="<?= e(url('/courses/' . $slug)) ?>" class="font-display font-bold truncate flex-1"><?= e($course['title']) ?></a>
-  <div class="flex items-center gap-2 shrink-0"><span class="hidden md:block text-sm text-slate-200" data-progress-text><?= (int) $summary['done'] ?> of <?= (int) $summary['total'] ?> complete</span>
+  <div class="flex items-center gap-2 shrink-0"><?= View::partial('partials/bell', ['onDark' => true]) ?><span class="hidden md:block text-sm text-slate-200" data-progress-text><?= (int) $summary['done'] ?> of <?= (int) $summary['total'] ?> complete</span>
     <div class="pl-ring" style="--p:<?= (int) $summary['percent'] ?>" role="img" aria-label="<?= (int) $summary['percent'] ?> percent complete"><span><?= (int) $summary['percent'] ?>%</span></div></div>
 </header>
 
@@ -32,22 +32,12 @@ $n = 0;
     <?php endif; ?>
 
     <div class="p-4 md:p-8 max-w-4xl">
-      <div id="cert-banner" class="mb-5 rounded-lg border border-green-300 bg-green-50 p-4 flex flex-wrap items-center justify-between gap-3" <?= $certificate ? '' : 'hidden' ?>>
+      <div id="cert-banner" class="mb-5 rounded-lg border border-green-300 bg-green-50 p-4 flex flex-wrap items-center justify-between gap-3" <?= ($certificate && (int) $summary['percent'] >= 100) ? '' : 'hidden' ?>>
         <p class="font-bold">&#127881; You completed this course!</p>
         <a class="btn btn-primary !py-1.5" href="<?= $certificate ? e(url('/certificate/' . $certificate)) : '#' ?>" target="_blank" rel="noopener">View your certificate</a>
       </div>
 
       <h1 class="text-2xl md:text-3xl font-extrabold"><?= e($lesson['title']) ?></h1>
-
-      <div class="mt-4 flex flex-wrap items-center gap-2">
-        <?php if ($prev): ?><a class="btn btn-ghost !py-2" href="<?= e($lurl($prev)) ?>">&lsaquo; Previous</a><?php endif; ?>
-        <?php if (!$isQuiz): ?><button id="complete-btn" type="button" class="btn btn-primary !py-2">Mark as complete</button><?php endif; ?>
-        <?php if ($next): ?>
-          <?php if ($isQuiz): ?><a class="btn btn-ghost !py-2" href="<?= e($lurl($next)) ?>">Next &rsaquo;</a>
-          <?php else: ?><button id="complete-next" type="button" class="btn btn-accent !py-2">Complete &amp; next &rsaquo;</button><?php endif; ?>
-        <?php else: ?><a class="btn btn-ghost !py-2" href="<?= e(url('/student/learning')) ?>">Back to my learning</a><?php endif; ?>
-        <span id="complete-msg" class="text-sm text-red-700" role="status"></span>
-      </div>
 
       <?php if ($lesson['lesson_type'] === 'article'): ?>
         <div class="mt-6 prose-lite"><?= render_content((string) $lesson['content']) ?></div>
@@ -90,6 +80,18 @@ $n = 0;
             <button class="btn btn-primary" type="submit"><?= $review ? 'Update review' : 'Submit review' ?></button>
           </form>
         </div>
+      </div>
+
+      <div id="lesson-actions" class="mt-10 pt-5 border-t flex flex-wrap items-center justify-between gap-3">
+        <div><?php if ($prev): ?><a class="btn btn-ghost !py-2" href="<?= e($lurl($prev)) ?>">&lsaquo; Previous</a><?php endif; ?></div>
+        <div class="flex flex-wrap items-center justify-end gap-2">
+          <?php if (!$isQuiz): ?><button id="complete-btn" type="button" class="btn btn-primary !py-2">Mark as complete</button><?php endif; ?>
+          <?php if ($next): ?>
+            <?php if ($isQuiz): ?><a class="btn btn-ghost !py-2" href="<?= e($lurl($next)) ?>">Next &rsaquo;</a>
+            <?php else: ?><button id="complete-next" type="button" class="btn btn-accent !py-2">Complete &amp; next &rsaquo;</button><?php endif; ?>
+          <?php else: ?><a class="btn btn-ghost !py-2" href="<?= e(url('/student/learning')) ?>">Back to my learning</a><?php endif; ?>
+        </div>
+        <p id="complete-msg" class="basis-full text-sm text-red-700 text-right" role="status"></p>
       </div>
     </div>
   </main>

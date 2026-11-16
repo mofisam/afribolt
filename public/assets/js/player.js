@@ -30,8 +30,10 @@
     const r = await post('/complete', { done: value ? '1' : '0' });
     if (!r.ok) { if (msg) msg.textContent = r.message || 'Could not save. Try again.'; return false; }
     done = value; render(); markRow(done); setSummary(r.summary);
-    if (r.certificate && done) {
-      const box = document.getElementById('cert-banner'); if (box) { box.hidden = false; box.querySelector('a').href = root.dataset.certBase + r.certificate; }
+    const box = document.getElementById('cert-banner');
+    if (box) {
+      if (r.certificate && done && (!r.summary || r.summary.percent >= 100)) { box.hidden = false; box.querySelector('a').href = root.dataset.certBase + r.certificate; }
+      else if (r.summary && r.summary.percent < 100) { box.hidden = true; }
     }
     if (done && advance && nextUrl) { location.href = nextUrl; }
     return true;

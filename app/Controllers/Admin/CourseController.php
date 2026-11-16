@@ -92,17 +92,17 @@ class CourseController extends BaseAdminController
                 ['label' => 'Updated', 'render' => fn($r) => local_date($r['updated_at'], null, 'j M Y')],
             ],
             'actions' => function ($r) {
-                $a = [['label' => 'Edit', 'url' => url('/admin/courses/' . $r['id'] . '/edit')]];
-                if ($r['delivery_mode'] !== 'live') { $a[] = ['label' => 'Curriculum', 'url' => url('/admin/courses/' . $r['id'] . '/curriculum')]; }
+                $a = [['label' => 'Edit', 'icon' => 'edit', 'url' => url('/admin/courses/' . $r['id'] . '/edit')]];
+                if ($r['delivery_mode'] !== 'live') { $a[] = ['label' => 'Curriculum', 'icon' => 'curriculum', 'url' => url('/admin/courses/' . $r['id'] . '/curriculum')]; }
                 if ($r['status'] === 'published') {
-                    $a[] = ['label' => 'View', 'url' => url('/courses/' . $r['slug'])];
-                    $a[] = ['label' => 'Unpublish', 'url' => url('/admin/courses/' . $r['id'] . '/status'), 'post' => true, 'fields' => ['status' => 'draft']];
+                    $a[] = ['label' => 'View on site', 'icon' => 'view', 'url' => url('/courses/' . $r['slug'])];
+                    $a[] = ['label' => 'Unpublish', 'icon' => 'unpublish', 'url' => url('/admin/courses/' . $r['id'] . '/status'), 'post' => true, 'fields' => ['status' => 'draft']];
                 } elseif ($r['status'] !== 'archived') {
-                    $a[] = ['label' => 'Publish', 'url' => url('/admin/courses/' . $r['id'] . '/status'), 'post' => true, 'fields' => ['status' => 'published']];
+                    $a[] = ['label' => 'Publish', 'icon' => 'publish', 'url' => url('/admin/courses/' . $r['id'] . '/status'), 'post' => true, 'fields' => ['status' => 'published']];
                 }
-                $a[] = ['label' => 'Duplicate', 'url' => url('/admin/courses/' . $r['id'] . '/duplicate'), 'post' => true, 'confirm' => 'Make a draft copy of this course, including its sections, lessons and quiz questions? (Uploaded files are not copied.)'];
+                $a[] = ['label' => 'Duplicate', 'icon' => 'duplicate', 'url' => url('/admin/courses/' . $r['id'] . '/duplicate'), 'post' => true, 'confirm' => 'Make a draft copy of this course, including its sections, lessons and quiz questions? (Uploaded files are not copied.)'];
                 if ($r['status'] !== 'archived') {
-                    $a[] = ['label' => 'Archive', 'url' => url('/admin/courses/' . $r['id'] . '/status'), 'post' => true, 'fields' => ['status' => 'archived'], 'confirm' => 'Archive this course? It will disappear from the site.'];
+                    $a[] = ['label' => 'Archive', 'icon' => 'archive', 'url' => url('/admin/courses/' . $r['id'] . '/status'), 'post' => true, 'fields' => ['status' => 'archived'], 'confirm' => 'Archive this course? It will disappear from the site.'];
                 }
                 return $a;
             },

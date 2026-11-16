@@ -153,3 +153,9 @@ Drafted from how the platform actually behaves (seat confirmed only after paymen
 ## Email (SMTP)
 
 Set `MAIL_HOST`, `MAIL_PORT`, `MAIL_ENCRYPTION` (`tls` for 587, `ssl` for 465), `MAIL_USERNAME`, `MAIL_PASSWORD` and `MAIL_FROM_ADDRESS` in `.env`, then use Admin > Email log > "Send a test email". Queued emails go out through `cron/send_queued_emails.php` (run it every minute).
+
+## Student notification bell
+
+The bell sits in the student header (and in the lesson player). Its number = unread notifications + new general announcements. Run `database/migrations/006_announcement_seen.sql` so the announcement part works (the bell still shows notifications without it).
+
+- **Publish all pending jobs**: Admin > Jobs shows "Publish all pending (N)" (and "except flagged" when some are risky). Jobs whose deadline has passed are skipped.

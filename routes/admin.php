@@ -65,6 +65,7 @@ $router->group(['prefix' => '/admin', 'middleware' => [AdminAuth::class]], funct
     $r->get('/jobs/create', [A\JobController::class, 'create']);
     $r->get('/jobs/reports', [A\JobController::class, 'reports']);
     $r->post('/jobs/process-ai', [A\JobController::class, 'processAi']);
+    $r->post('/jobs/publish-pending', [A\JobController::class, 'publishPending']);
     $r->post('/jobs', [A\JobController::class, 'store']);
     $r->get('/jobs/{id}/review', [A\JobController::class, 'review']);
     $r->post('/jobs/{id}', [A\JobController::class, 'update']);

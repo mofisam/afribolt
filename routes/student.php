@@ -27,6 +27,8 @@ $router->group(['prefix' => '/student', 'middleware' => [StudentAuth::class]], f
     $r->post('/profile/password', [ProfileController::class, 'changePassword']);
     $r->get('/notifications', [NotificationController::class, 'index']);
     $r->post('/notifications/read', [NotificationController::class, 'markAllRead']);
+    $r->post('/notifications/{id}/read', [NotificationController::class, 'markRead']);
+    $r->post('/notifications/{id}/open', [NotificationController::class, 'open']);
     $r->post('/enrolments/{id}/pay', [PaymentController::class, 'start']);
     $r->get('/payments/callback', [PaymentController::class, 'callback']);
     $r->post('/sessions/{id}/join', [SessionController::class, 'join']);

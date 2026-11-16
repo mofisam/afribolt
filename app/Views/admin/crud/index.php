@@ -8,6 +8,23 @@
  * @var callable|null $actions fn($row) => [['label','url','post'=>bool,'confirm'=>string], ...]
  */
 $filters = $filters ?? []; $actions = $actions ?? null;
+// Optional 'icon' on an action turns it into a compact icon button (label stays as tooltip + screen-reader text).
+$actIcons = [
+  'edit' => '<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/>',
+  'curriculum' => '<path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/>',
+  'view' => '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>',
+  'unpublish' => '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><path d="M1 1l22 22"/>',
+  'publish' => '<path d="M20 6L9 17l-5-5"/>',
+  'duplicate' => '<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
+  'archive' => '<path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/>',
+  'delete' => '<path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>',
+];
+$actBtn = function (array $a) use ($actIcons): string {
+    $label = e($a['label']);
+    if (empty($a['icon']) || !isset($actIcons[$a['icon']])) { return $label; }
+    return '<svg viewBox="0 0 24 24" aria-hidden="true">' . $actIcons[$a['icon']] . '</svg><span class="sr-only">' . $label . '</span>';
+};
+$actClass = fn(array $a) => !empty($a['icon']) && isset($actIcons[$a['icon']]) ? 'act' . (in_array($a['icon'], ['archive', 'delete', 'unpublish'], true) ? ' act-warn' : '') : 'underline text-bolt-dark mr-3';
 ?>
 <div class="flex flex-wrap items-center justify-between gap-3">
   <h1 class="text-3xl font-extrabold"><?= e($title) ?></h1>
@@ -43,14 +60,14 @@ $filters = $filters ?? []; $actions = $actions ?? null;
         <?php foreach ($columns as $c): $out = $c['render']($row); ?>
           <td class="p-3"><?= !empty($c['html']) ? $out : e($out) ?></td>
         <?php endforeach; ?>
-        <?php if ($actions): ?><td class="p-3 whitespace-nowrap text-right">
+        <?php if ($actions): ?><td class="p-3 whitespace-nowrap text-right"><div class="inline-flex items-center justify-end gap-1.5 flex-wrap">
           <?php foreach ($actions($row) as $a): ?>
             <?php if (!empty($a['post'])): ?>
               <form method="post" action="<?= e($a['url']) ?>" class="inline" <?= !empty($a['confirm']) ? 'onsubmit="return confirm(' . e(json_encode($a['confirm'])) . ')"' : '' ?>>
                 <?= csrf_field() ?><?php foreach (($a['fields'] ?? []) as $fk => $fv): ?><input type="hidden" name="<?= e($fk) ?>" value="<?= e($fv) ?>"><?php endforeach; ?>
-                <button class="underline text-bolt-dark mr-3" type="submit"><?= e($a['label']) ?></button></form>
-            <?php else: ?><a class="underline text-bolt-dark mr-3" href="<?= e($a['url']) ?>"><?= e($a['label']) ?></a><?php endif; ?>
-          <?php endforeach; ?></td><?php endif; ?>
+                <button class="<?= $actClass($a) ?>" type="submit" title="<?= e($a['label']) ?>"><?= $actBtn($a) ?></button></form>
+            <?php else: ?><a class="<?= $actClass($a) ?>" href="<?= e($a['url']) ?>" title="<?= e($a['label']) ?>"><?= $actBtn($a) ?></a><?php endif; ?>
+          <?php endforeach; ?></div></td><?php endif; ?>
       </tr>
     <?php endforeach; if (!$rows): ?>
       <tr><td class="p-6 text-slate-500" colspan="<?= count($columns) + ($actions ? 1 : 0) ?>">Nothing here yet.</td></tr>
