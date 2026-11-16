@@ -315,3 +315,14 @@ mark.ph { background: #fff0a6; padding: 0 .25em; border-radius: .2em; color: inh
 .nt-more summary .nt-link { display: inline-block; margin-top: .15rem; }
 .nt-more[open] summary .nt-link { display: none; }
 .nt-empty { margin-top: 2rem; text-align: center; background: #fff; border: 1px dashed #cbd5e1; border-radius: .75rem; padding: 2.5rem 1rem; }
+
+/* Career Launch stage tracker (student dashboard) */
+.clt { list-style: none; margin: 1rem 0 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem; }
+@media (min-width: 640px) { .clt { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: .4rem; } }
+.clt li { display: flex; align-items: center; gap: .5rem; }
+@media (min-width: 640px) { .clt li { flex-direction: column; text-align: center; } }
+.clt-dot { flex: none; width: 2rem; height: 2rem; border-radius: 999px; display: grid; place-items: center; font-weight: 800; font-size: .85rem; background: #e2e8f0; color: #475569; }
+.clt-name { font-size: .8rem; font-weight: 700; color: #475569; line-height: 1.2; }
+.clt-done .clt-dot { background: #15803d; color: #fff; }
+.clt-now .clt-dot { background: var(--bolt); color: #fff; box-shadow: 0 0 0 4px rgba(27,140,203,.25); }
+.clt-now .clt-name { color: var(--ink); }

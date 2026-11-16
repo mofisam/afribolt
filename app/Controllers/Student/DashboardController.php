@@ -3,7 +3,7 @@ namespace App\Controllers\Student;
 
 use App\Core\{Auth, Controller};
 use App\Models\{Announcement, ClassSession, Enrolment};
-use App\Services\{CountdownService, LearningService, NotificationService};
+use App\Services\{CareerLaunchService, CountdownService, LearningService, NotificationService};
 
 class DashboardController extends Controller
 {
@@ -32,6 +32,7 @@ class DashboardController extends Controller
             'title'         => 'My dashboard',
             'learning'      => $learning,
             'student'       => $student,
+            'career'        => CareerLaunchService::forUser((int) $student['id']),
             'enrolments'    => $enrolments,
             'announcements' => Announcement::forStudent((int) $student['id']),
             'unread'        => (new NotificationService())->unreadCount((int) $student['id']),

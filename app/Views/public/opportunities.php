@@ -1,14 +1,7 @@
 <?php
-/** @var ?int $seatsLeft @var int $seatsTotal */
+/** @var ?int $seatsLeft @var int $seatsTotal @var ?array $student @var ?array $registration */
 $n = fn(int $v) => '₦' . number_format($v);
-$stages = [
-  ['Register', 'Create your account and complete a short intake form: target role, experience, current CV and LinkedIn link.', 'your profile is complete'],
-  ['Enrol in the course', 'Learn at your own pace on the Afribolt platform, with a certificate at the end.', 'you finish the course'],
-  ['Live projects', 'Work in a team on supervised projects built from real or realistic Nigerian business briefs, and get your work assessed.', 'you complete and pass the assigned projects'],
-  ['Full Accelerator', 'Own a project yourself over 3 to 6 months, with mentor check-ins along the way. You leave with a verified project record.', 'your assigned projects are complete. This unlocks reference eligibility'],
-  ['Interview Ready', 'Three mock interviews, behavioural and role-specific, with written feedback, plus a job application strategy session.', 'you complete all three mock interviews'],
-  ['Job Ready', 'A revamped CV built from your verified project record, a LinkedIn rewrite, a cover letter and your Afribolt reference letter.', 'your CV and reference letter are issued'],
-];
+$stages = \App\Services\CareerLaunchService::STAGES;
 $values = [
   'Stage 2: Enrol in the course' => [['Self-paced course and certificate', 20000]],
   'Stage 3: Live projects' => [['Supervised team projects with assessment', 120000]],
@@ -33,7 +26,7 @@ $faqs = [
       <p class="font-bold text-volt">Afribolt Career Launch</p>
       <h1 class="mt-2 text-4xl md:text-5xl font-extrabold">Learn it. Build it. Get hired.</h1>
       <p class="mt-4 text-lg text-slate-200 max-w-prose">Afribolt Career Launch takes you from a free account to a job-ready CV backed by real project work, interview practice and a reference from Afribolt.</p>
-      <a class="btn btn-accent mt-6" href="#register">Register now</a>
+      <a class="btn btn-accent mt-6" href="#register"><?= $registration ? 'See my progress' : 'Register now' ?></a>
     </div>
     <div class="bg-white text-ink rounded-lg p-6">
       <p class="inline-block bg-volt font-bold text-sm px-3 py-1 rounded">Founding price: first <?= (int) $seatsTotal ?> students</p>
@@ -91,24 +84,56 @@ $faqs = [
 <section id="register" class="bg-ink text-white" style="scroll-margin-top:5rem">
   <div class="max-w-2xl mx-auto px-4 py-12">
     <h2 class="text-3xl font-bold">Start at Stage 1</h2>
-    <p class="mt-2 text-slate-200">Fill in the form and we will send your payment link and next steps.</p>
     <?= App\Core\View::partial('partials/flash') ?>
-    <form method="post" action="<?= e(url('/career-accelerator/register')) ?>" class="mt-6 bg-white text-ink rounded-lg p-6 space-y-4" novalidate>
-      <?= csrf_field() ?>
-      <div class="hidden" aria-hidden="true"><label>Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
-      <div><label class="label" for="cl_name">Full name</label><input class="field" id="cl_name" name="full_name" value="<?= e(old('full_name')) ?>" autocomplete="name" required><?= field_error('full_name') ?></div>
-      <div class="grid sm:grid-cols-2 gap-4">
-        <div><label class="label" for="cl_email">Email</label><input class="field" type="email" id="cl_email" name="email" value="<?= e(old('email')) ?>" autocomplete="email" required><?= field_error('email') ?></div>
-        <div><label class="label" for="cl_phone">Phone or WhatsApp</label><input class="field" id="cl_phone" name="phone" value="<?= e(old('phone')) ?>" autocomplete="tel" required><?= field_error('phone') ?></div>
+
+    <?php if (!$student): ?>
+      <p class="mt-2 text-slate-200">Career Launch is for registered students. Creating an account is free, and it takes a minute. You will come straight back here to finish joining.</p>
+      <div class="mt-6 bg-white text-ink rounded-lg p-6">
+        <p class="font-bold text-lg">Step 1: your free account</p>
+        <p class="mt-1 text-slate-700">We use your account for your name, email and phone, so you will not need to type them again.</p>
+        <div class="mt-4 flex flex-wrap gap-3">
+          <a class="btn btn-accent" href="<?= e(url('/career-accelerator/join')) ?>">Create a free account</a>
+          <a class="btn btn-ghost" href="<?= e(url('/career-accelerator/join?to=login')) ?>">I already have an account</a>
+        </div>
       </div>
-      <div><label class="label" for="cl_role">Target role</label><input class="field" id="cl_role" name="target_role" value="<?= e(old('target_role')) ?>" placeholder="e.g. Project coordinator" required><?= field_error('target_role') ?></div>
-      <div class="grid sm:grid-cols-2 gap-4">
-        <div><label class="label" for="cl_li">LinkedIn link (optional)</label><input class="field" type="url" id="cl_li" name="linkedin_url" value="<?= e(old('linkedin_url')) ?>" placeholder="https://www.linkedin.com/in/..."><?= field_error('linkedin_url') ?></div>
-        <div><label class="label" for="cl_ref">Referral code (optional)</label><input class="field" id="cl_ref" name="referral_code" value="<?= e(old('referral_code')) ?>"><?= field_error('referral_code') ?></div>
+
+    <?php elseif ($registration): $st = $registration['status']; ?>
+      <div class="mt-6 bg-white text-ink rounded-lg p-6" role="status">
+        <p class="inline-block bg-volt font-bold text-sm px-3 py-1 rounded"><?= e(\App\Services\CareerLaunchService::STATUS_LABELS[$st] ?? $st) ?></p>
+        <p class="mt-3 font-bold text-xl">You have joined Career Launch, <?= e($student['first_name']) ?>.</p>
+        <p class="mt-1 text-slate-700"><?= match ($st) {
+            'payment_sent' => 'We have sent your payment link to ' . e($registration['email']) . '. Pay to unlock Stage 2.',
+            'paid' => 'Your place is confirmed. Follow your stages on your dashboard.',
+            'cancelled' => 'This registration was cancelled. Contact us if you would like to rejoin.',
+            default => 'We will send your payment link and next steps to ' . e($registration['email']) . '.',
+        } ?></p>
+        <a class="btn btn-primary mt-4" href="<?= e(url('/student/dashboard')) ?>">Go to my dashboard</a>
       </div>
-      <button class="btn btn-accent" type="submit">Register and get payment link</button>
-      <p class="text-sm text-slate-700">Founding price: <?= e($n($founding)) ?> for the first <?= (int) $seatsTotal ?> students to pay. Valued at <?= e($n($total)) ?>. Refunds are available only before any stage work begins.</p>
-    </form>
+
+    <?php else: ?>
+      <p class="mt-2 text-slate-200">You are signed in, so we already have your details. Tell us what role you are aiming for and we will send your payment link and next steps.</p>
+      <form method="post" action="<?= e(url('/career-accelerator/register')) ?>" class="mt-6 bg-white text-ink rounded-lg p-6 space-y-4" novalidate>
+        <?= csrf_field() ?>
+        <div class="hidden" aria-hidden="true"><label>Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
+        <div class="rounded-lg bg-bolt-tint p-4">
+          <p class="text-sm text-slate-600">Joining as</p>
+          <p class="font-bold"><?= e($student['first_name'] . ' ' . $student['last_name']) ?></p>
+          <p class="text-sm"><?= e($student['email']) ?><?= !empty($student['phone']) ? ' &middot; ' . e($student['phone']) : '' ?></p>
+          <p class="mt-1 text-sm"><a class="underline text-bolt-dark" href="<?= e(url('/student/profile')) ?>">Not right? Update your profile</a></p>
+        </div>
+        <?php if (empty($student['phone'])): ?>
+          <div><label class="label" for="cl_phone">Phone or WhatsApp</label><input class="field" id="cl_phone" name="phone" value="<?= e(old('phone')) ?>" autocomplete="tel" required><?= field_error('phone') ?>
+            <p class="text-sm text-slate-600 mt-1">Your account has no phone number yet. We will save this to your profile.</p></div>
+        <?php endif; ?>
+        <div><label class="label" for="cl_role">Target role</label><input class="field" id="cl_role" name="target_role" value="<?= e(old('target_role')) ?>" placeholder="e.g. Project coordinator" required><?= field_error('target_role') ?></div>
+        <div class="grid sm:grid-cols-2 gap-4">
+          <div><label class="label" for="cl_li">LinkedIn link (optional)</label><input class="field" type="url" id="cl_li" name="linkedin_url" value="<?= e(old('linkedin_url')) ?>" placeholder="https://www.linkedin.com/in/..."><?= field_error('linkedin_url') ?></div>
+          <div><label class="label" for="cl_ref">Referral code (optional)</label><input class="field" id="cl_ref" name="referral_code" value="<?= e(old('referral_code')) ?>"><?= field_error('referral_code') ?></div>
+        </div>
+        <button class="btn btn-accent" type="submit">Join and get payment link</button>
+        <p class="text-sm text-slate-700">Founding price: <?= e($n($founding)) ?> for the first <?= (int) $seatsTotal ?> students to pay. Valued at <?= e($n($total)) ?>. Refunds are available only before any stage work begins.</p>
+      </form>
+    <?php endif; ?>
   </div>
 </section>
 

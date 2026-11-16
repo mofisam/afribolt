@@ -13,6 +13,8 @@ Built from the project requirements doc and `live_online_educational_platform_sc
    mysql -u root -p < database/migrations/003_self_paced_learning.sql
    mysql -u root -p < database/migrations/004_jobs.sql
    mysql -u root -p < database/migrations/005_career_launch.sql
+   mysql -u root -p < database/migrations/006_announcement_seen.sql
+   mysql -u root -p < database/migrations/007_career_launch_users.sql
    ```
 2. **Config**: `cp .env.example .env`, then set `DB_*`, `APP_URL`, and `SEED_ADMIN_PASSWORD`.
 3. **Seed**
@@ -159,3 +161,5 @@ Set `MAIL_HOST`, `MAIL_PORT`, `MAIL_ENCRYPTION` (`tls` for 587, `ssl` for 465), 
 The bell sits in the student header (and in the lesson player). Its number = unread notifications + new general announcements. Run `database/migrations/006_announcement_seen.sql` so the announcement part works (the bell still shows notifications without it).
 
 - **Publish all pending jobs**: Admin > Jobs shows "Publish all pending (N)" (and "except flagged" when some are risky). Jobs whose deadline has passed are skipped.
+
+- **Career Launch needs an account**: visitors without one are sent to sign up / log in and come back to the join form, which already knows their name, email and phone. Admin > Career Launch moves paid students through the six stages (they get a notification each time) and the student dashboard shows their progress. Run migration 007.

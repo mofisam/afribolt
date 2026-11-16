@@ -1,6 +1,42 @@
 <h1 class="text-3xl font-extrabold">Hi <?= e($student['first_name']) ?></h1>
 <?php if ($unread): ?><p class="mt-1"><a class="underline text-bolt-dark" href="<?= e(url('/student/notifications')) ?>">You have <?= (int) $unread ?> unread notification<?= $unread > 1 ? 's' : '' ?></a></p><?php endif; ?>
 
+<?php
+// Career Launch: progress tracker once joined, a short invitation before that.
+$stages = \App\Services\CareerLaunchService::STAGES;
+if (!empty($career) && $career['status'] !== 'cancelled'):
+    $paid = $career['status'] === 'paid'; $cur = $paid ? (int) $career['stage'] : 1;
+    $note = match ($career['status']) {
+        'payment_sent' => 'We sent your payment link to ' . $career['email'] . '. Pay to unlock Stage 2.',
+        'paid' => $cur >= 7 ? 'You have completed all six stages. Well done!' : 'Now on Stage ' . $cur . ': ' . $stages[$cur - 1][1],
+        default => 'We will send your payment link and next steps to ' . $career['email'] . '.',
+    };
+?>
+<section class="mt-6 bg-white border rounded-lg p-5" aria-labelledby="clh">
+  <div class="flex flex-wrap items-center justify-between gap-2">
+    <h2 id="clh" class="font-display font-bold text-xl">Career Launch</h2>
+    <span class="badge <?= $paid ? 'badge-open' : 'badge-warn' ?>"><?= e(\App\Services\CareerLaunchService::STATUS_LABELS[$career['status']]) ?></span>
+  </div>
+  <ol class="clt" aria-label="Your six stages">
+    <?php foreach ($stages as $i => $st): $n = $i + 1; $state = $n < $cur ? 'done' : ($n === $cur && $cur < 7 ? 'now' : ($cur >= 7 ? 'done' : 'todo')); ?>
+      <li class="clt-<?= $state ?>" <?= $state === 'now' ? 'aria-current="step"' : '' ?>>
+        <span class="clt-dot" aria-hidden="true"><?= $state === 'done' ? '&#10003;' : $n ?></span>
+        <span class="clt-name"><?= e($st[0]) ?><span class="sr-only"> (<?= $state === 'done' ? 'done' : ($state === 'now' ? 'current stage' : 'locked') ?>)</span></span>
+      </li>
+    <?php endforeach; ?>
+  </ol>
+  <p class="mt-3 text-slate-700"><?= e($note) ?></p>
+  <?php if ($paid && $cur < 7): ?><p class="text-sm mt-1"><strong>Done when:</strong> <?= e($stages[$cur - 1][2]) ?>.</p><?php endif; ?>
+  <p class="mt-3 text-sm"><a class="font-bold underline text-bolt-dark" href="<?= e(url('/career-accelerator')) ?>">Programme details</a><?= $cur === 2 && $paid ? ' &middot; <a class="font-bold underline text-bolt-dark" href="' . e(url('/student/learning')) . '">Go to my courses</a>' : '' ?></p>
+</section>
+<?php else: ?>
+<section class="mt-6 bg-ink text-white rounded-lg p-5 flex flex-wrap items-center justify-between gap-4" aria-labelledby="clh">
+  <div class="max-w-xl"><h2 id="clh" class="font-display font-bold text-xl">Career Launch: learn it, build it, get hired</h2>
+    <p class="text-slate-200 mt-1">Real project work, mock interviews, a revamped CV and a reference from Afribolt. Founding price &#8358;50,000 for the first 100 students.</p></div>
+  <a class="btn btn-accent" href="<?= e(url('/career-accelerator#register')) ?>">Join with your account</a>
+</section>
+<?php endif; ?>
+
 <?php if (!empty($learning)): ?>
 <section class="mt-6" aria-labelledby="cl-h"><div class="flex items-center justify-between"><h2 id="cl-h" class="font-display font-bold text-xl">Continue learning</h2>
   <a class="text-sm font-bold underline text-bolt-dark" href="<?= e(url('/student/learning')) ?>">My learning</a></div>
