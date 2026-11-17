@@ -57,6 +57,8 @@ $router->group(['prefix' => '/admin', 'middleware' => [AdminAuth::class]], funct
 
     // Career Launch registrations
     $r->get('/career-launch', [A\CareerLaunchController::class, 'index']);
+    $r->get('/career-launch/{id}/edit', [A\CareerLaunchController::class, 'edit']);
+    $r->post('/career-launch/{id}', [A\CareerLaunchController::class, 'update']);
     $r->post('/career-launch/{id}/status', [A\CareerLaunchController::class, 'status']);
     $r->post('/career-launch/{id}/stage', [A\CareerLaunchController::class, 'stage']);
     $r->post('/career-launch/{id}/delete', [A\CareerLaunchController::class, 'delete']);
@@ -146,6 +148,7 @@ $router->group(['prefix' => '/admin', 'middleware' => [AdminAuth::class]], funct
     $r->get('/audit-logs', [A\AuditLogController::class, 'index']);
     $r->get('/email-logs', [A\EmailLogController::class, 'index']);
     $r->post('/email-logs/test', [A\EmailLogController::class, 'test']);
+    $r->post('/email-logs/{id}/resend', [A\EmailLogController::class, 'resend']);
     $r->post('/email-logs/{id}/retry', [A\EmailLogController::class, 'retry']);
 
     // Gateways + settings + admin accounts

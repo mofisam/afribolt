@@ -102,12 +102,15 @@ $faqs = [
         <p class="inline-block bg-volt font-bold text-sm px-3 py-1 rounded"><?= e(\App\Services\CareerLaunchService::STATUS_LABELS[$st] ?? $st) ?></p>
         <p class="mt-3 font-bold text-xl">You have joined Career Launch, <?= e($student['first_name']) ?>.</p>
         <p class="mt-1 text-slate-700"><?= match ($st) {
-            'payment_sent' => 'We have sent your payment link to ' . e($registration['email']) . '. Pay to unlock Stage 2.',
+            'payment_sent' => 'Your payment link is ready. Pay to unlock Stage 2. It is also on your dashboard.',
             'paid' => 'Your place is confirmed. Follow your stages on your dashboard.',
             'cancelled' => 'This registration was cancelled. Contact us if you would like to rejoin.',
             default => 'We will send your payment link and next steps to ' . e($registration['email']) . '.',
         } ?></p>
-        <a class="btn btn-primary mt-4" href="<?= e(url('/student/dashboard')) ?>">Go to my dashboard</a>
+        <div class="mt-4 flex flex-wrap gap-3">
+          <?php if ($st !== 'paid' && $st !== 'cancelled' && !empty($registration['payment_link'])): ?><a class="btn btn-accent" href="<?= e($registration['payment_link']) ?>" target="_blank" rel="noopener noreferrer">Pay now<span class="sr-only"> (opens in a new tab)</span></a><?php endif; ?>
+          <a class="btn btn-primary" href="<?= e(url('/student/dashboard')) ?>">Go to my dashboard</a>
+        </div>
       </div>
 
     <?php else: ?>

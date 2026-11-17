@@ -17,14 +17,15 @@ $actIcons = [
   'publish' => '<path d="M20 6L9 17l-5-5"/>',
   'duplicate' => '<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
   'archive' => '<path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/>',
+  'send' => '<path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/>',
   'delete' => '<path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>',
 ];
 $actBtn = function (array $a) use ($actIcons): string {
     $label = e($a['label']);
     if (empty($a['icon']) || !isset($actIcons[$a['icon']])) { return $label; }
-    return '<svg viewBox="0 0 24 24" aria-hidden="true">' . $actIcons[$a['icon']] . '</svg><span class="sr-only">' . $label . '</span>';
+    return '<svg viewBox="0 0 24 24" aria-hidden="true">' . $actIcons[$a['icon']] . '</svg>' . (!empty($a['show_label']) ? '<span>' . $label . '</span>' : '<span class="sr-only">' . $label . '</span>');
 };
-$actClass = fn(array $a) => !empty($a['icon']) && isset($actIcons[$a['icon']]) ? 'act' . (in_array($a['icon'], ['archive', 'delete', 'unpublish'], true) ? ' act-warn' : '') : 'underline text-bolt-dark mr-3';
+$actClass = fn(array $a) => !empty($a['icon']) && isset($actIcons[$a['icon']]) ? 'act' . (!empty($a['show_label']) ? ' act-label' : '') . (in_array($a['icon'], ['archive', 'delete', 'unpublish'], true) ? ' act-warn' : '') : 'underline text-bolt-dark mr-3';
 ?>
 <div class="flex flex-wrap items-center justify-between gap-3">
   <h1 class="text-3xl font-extrabold"><?= e($title) ?></h1>

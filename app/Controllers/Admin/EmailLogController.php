@@ -30,7 +30,8 @@ class EmailLogController extends BaseAdminController
                 ['label' => 'Tries', 'render' => fn($r) => $r['attempts']],
                 ['label' => 'Last error', 'render' => fn($r) => $r['last_error'] ?? ''],
             ],
-            'actions' => fn($r) => $r['status'] === 'failed' ? [['label' => 'Retry', 'url' => url('/admin/email-logs/' . $r['id'] . '/retry'), 'post' => true]] : [],
+            'actions' => fn($r) => [['label' => 'Resend', 'icon' => 'send', 'show_label' => true, 'url' => url('/admin/email-logs/' . $r['id'] . '/resend'), 'post' => true,
+                'confirm' => 'Send this email again to ' . $r['recipient_email'] . ' now?']],
         ]);
     }
 
@@ -45,6 +46,16 @@ class EmailLogController extends BaseAdminController
             $this->done('Test failed: ' . $e->getMessage(), '/admin/email-logs', 'error');
         }
         $this->done('Test email sent to ' . $to . '. Check the inbox (and spam folder).', '/admin/email-logs');
+    }
+
+    /** Send this email again immediately and show the result (works for sent, queued and failed emails). */
+    public function resend(string $id): void
+    {
+        $e = EmailLog::find((int) $id) ?? $this->abort(404);
+        try { (new \App\Services\MailService())->resend((int) $e['id']); }
+        catch (\Throwable $ex) { $this->done('Could not resend: ' . $ex->getMessage(), '/admin/email-logs', 'error'); }
+        $this->audit('email.resent', 'email_log', (int) $e['id'], null, ['to' => $e['recipient_email']]);
+        $this->done('Email resent to ' . $e['recipient_email'] . '. Check the inbox (and spam folder).', '/admin/email-logs');
     }
 
     public function retry(string $id): void

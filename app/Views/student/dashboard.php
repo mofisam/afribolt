@@ -7,7 +7,7 @@ $stages = \App\Services\CareerLaunchService::STAGES;
 if (!empty($career) && $career['status'] !== 'cancelled'):
     $paid = $career['status'] === 'paid'; $cur = $paid ? (int) $career['stage'] : 1;
     $note = match ($career['status']) {
-        'payment_sent' => 'We sent your payment link to ' . $career['email'] . '. Pay to unlock Stage 2.',
+        'payment_sent' => 'Your payment link is ready. Pay to unlock Stage 2.',
         'paid' => $cur >= 7 ? 'You have completed all six stages. Well done!' : 'Now on Stage ' . $cur . ': ' . $stages[$cur - 1][1],
         default => 'We will send your payment link and next steps to ' . $career['email'] . '.',
     };
@@ -26,6 +26,13 @@ if (!empty($career) && $career['status'] !== 'cancelled'):
     <?php endforeach; ?>
   </ol>
   <p class="mt-3 text-slate-700"><?= e($note) ?></p>
+  <?php if (!$paid && !empty($career['payment_link'])): ?>
+    <div class="mt-4 rounded-lg bg-bolt-tint p-4 flex flex-wrap items-center justify-between gap-3">
+      <p><strong>Founding price: &#8358;50,000</strong> one-time. Paying unlocks Stage 2.</p>
+      <a class="btn btn-accent" href="<?= e($career['payment_link']) ?>" target="_blank" rel="noopener noreferrer">Pay now<span class="sr-only"> (opens in a new tab)</span></a>
+    </div>
+    <p class="mt-2 text-sm text-slate-600">Already paid? We confirm payments by hand, so your stages unlock once the team marks you paid.</p>
+  <?php elseif (!$paid): ?><p class="mt-2 text-sm text-slate-600">Your payment link will appear here as soon as it is ready, and we will email and notify you.</p><?php endif; ?>
   <?php if ($paid && $cur < 7): ?><p class="text-sm mt-1"><strong>Done when:</strong> <?= e($stages[$cur - 1][2]) ?>.</p><?php endif; ?>
   <p class="mt-3 text-sm"><a class="font-bold underline text-bolt-dark" href="<?= e(url('/career-accelerator')) ?>">Programme details</a><?= $cur === 2 && $paid ? ' &middot; <a class="font-bold underline text-bolt-dark" href="' . e(url('/student/learning')) . '">Go to my courses</a>' : '' ?></p>
 </section>

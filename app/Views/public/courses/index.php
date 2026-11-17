@@ -70,4 +70,11 @@ $curSort = $g('sort') ?: 'popular';
     </div>
   </div>
 </div>
+<section class="bg-ink text-white" aria-labelledby="join-h">
+  <div class="max-w-3xl mx-auto px-4 py-12 text-center">
+    <h2 id="join-h" class="text-3xl font-extrabold">Ready to start learning?</h2>
+    <p class="mt-2 text-slate-200">Create your free account and start learning with Afribolt. It opens in a new tab.</p>
+    <a class="btn btn-accent mt-6 !px-8 !py-3 text-lg" href="https://easyshiksha.com/online_courses/Internship/embedcourseInternship?myref=507493" target="_blank" rel="noopener noreferrer">Join us for Free<span class="sr-only"> (opens in a new tab)</span></a>
+  </div>
+</section>
 <script src="<?= e(asset('js/course.js')) ?>" defer></script>

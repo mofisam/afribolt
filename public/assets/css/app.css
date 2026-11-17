@@ -326,3 +326,11 @@ mark.ph { background: #fff0a6; padding: 0 .25em; border-radius: .2em; color: inh
 .clt-done .clt-dot { background: #15803d; color: #fff; }
 .clt-now .clt-dot { background: var(--bolt); color: #fff; box-shadow: 0 0 0 4px rgba(27,140,203,.25); }
 .clt-now .clt-name { color: var(--ink); }
+
+.act-label { width: auto; padding: 0 .7rem; gap: .4rem; font-weight: 700; font-size: .85rem; }
+
+/* Inputs always use dark text, even when placed inside a dark (white-text) section such as the courses and jobs headers. */
+.field { color: #0A2540; }
+.field::placeholder { color: #64748b; opacity: 1; }
+select.field option { color: #0A2540; background: #fff; }
+.field:-webkit-autofill { -webkit-text-fill-color: #0A2540; }

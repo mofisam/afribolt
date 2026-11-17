@@ -40,9 +40,36 @@ class MailService
                 'UPDATE email_logs SET status = ?, attempts = attempts + 1, last_error = ?, sent_at = ' . ($ok ? 'UTC_TIMESTAMP()' : 'NULL') . ' WHERE id = ?',
                 [$ok ? 'sent' : ((int) $row['attempts'] + 1 >= $max ? 'failed' : 'queued'), $err, (int) $row['id']]
             );
-            if ($ok) { $sent++; @unlink($file); }
+            if ($ok) { $sent++; } // keep the rendered copy so an admin can resend it later
         }
+        $this->purgeOldCopies();
         return $sent;
+    }
+
+    /** Delete saved email copies older than 60 days (they are kept after sending so "Resend" works). */
+    private function purgeOldCopies(): void
+    {
+        foreach (glob(base_path('storage/cache/email_*.html')) ?: [] as $f) {
+            if (@filemtime($f) < time() - 60 * 86400) { @unlink($f); }
+        }
+    }
+
+    /**
+     * Send an already-logged email again, right now. Uses the saved copy of the message.
+     * @throws \RuntimeException when the copy no longer exists or delivery fails
+     */
+    public function resend(int $id): void
+    {
+        $row = Database::one('SELECT * FROM email_logs WHERE id = ?', [$id]) ?? throw new \RuntimeException('Email not found.');
+        $file = base_path("storage/cache/email_{$id}.html");
+        if (!is_file($file)) { throw new \RuntimeException('The saved copy of this message is gone (emails sent before this update, or older than 60 days, cannot be resent).'); }
+        try {
+            $this->deliver($row['recipient_email'], $row['subject'], (string) file_get_contents($file));
+        } catch (\Throwable $e) {
+            Database::execute("UPDATE email_logs SET status = 'failed', attempts = attempts + 1, last_error = ? WHERE id = ?", [mb_substr($e->getMessage(), 0, 500), $id]);
+            throw $e;
+        }
+        Database::execute("UPDATE email_logs SET status = 'sent', attempts = attempts + 1, last_error = NULL, sent_at = UTC_TIMESTAMP() WHERE id = ?", [$id]);
     }
 
     /** Send one email immediately (used by the admin "Send test email" button). Throws on failure. */

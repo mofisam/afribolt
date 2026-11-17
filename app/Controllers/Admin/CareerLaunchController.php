@@ -31,11 +31,12 @@ class CareerLaunchController extends BaseAdminController
                     : ((int) $r['stage'] >= 7 ? '<strong>All done</strong>' : '<strong>' . (int) $r['stage'] . '/6</strong> ' . e(CareerLaunchService::STAGES[(int) $r['stage'] - 1][0]))],
                 ['label' => 'LinkedIn', 'html' => true, 'render' => fn($r) => $r['linkedin_url'] ? '<a class="underline" href="' . e($r['linkedin_url']) . '" target="_blank" rel="noopener noreferrer">Open</a>' : '<span class="text-slate-400">None</span>'],
                 ['label' => 'Referral', 'render' => fn($r) => $r['referral_code'] ?? ''],
+                ['label' => 'Pay link', 'html' => true, 'render' => fn($r) => !empty($r['payment_link']) ? '<span class="text-green-700 font-bold">Added</span>' : '<span class="text-slate-400">None</span>'],
                 ['label' => 'Status', 'html' => true, 'render' => fn($r) => $this->badge(self::STATUSES[$r['status']], $r['status'] === 'paid' ? 'badge-open' : ($r['status'] === 'cancelled' ? 'badge-closed' : ''))],
                 ['label' => 'Registered', 'render' => fn($r) => local_date($r['created_at'], null, 'j M Y, g:i A')],
             ],
             'actions' => function ($r) {
-                $a = [];
+                $a = [['label' => !empty($r['payment_link']) ? 'Edit payment link' : 'Add payment link', 'url' => url('/admin/career-launch/' . $r['id'] . '/edit')]];
                 foreach (['payment_sent' => 'Mark link sent', 'paid' => 'Mark paid', 'cancelled' => 'Cancel', 'new' => 'Reopen'] as $st => $label) {
                     if ($st === $r['status'] || ($st === 'payment_sent' && $r['status'] === 'paid')) { continue; }
                     $a[] = ['label' => $label, 'url' => url('/admin/career-launch/' . $r['id'] . '/status'), 'post' => true, 'fields' => ['status' => $st],
@@ -67,6 +68,41 @@ class CareerLaunchController extends BaseAdminController
         if (isset($msgs[$new])) { CareerLaunchService::notify($r, $msgs[$new][0], $msgs[$new][1]); }
         $this->audit('career_launch.status_changed', 'career_launch_registration', (int) $r['id'], ['status' => $r['status']], ['status' => $new]);
         $this->done($r['full_name'] . ': ' . strtolower(self::STATUSES[$new]) . '.', '/admin/career-launch');
+    }
+
+    public function edit(string $id): void
+    {
+        $reg = CareerLaunchRegistration::find((int) $id) ?? $this->abort(404);
+        $this->page('admin/career-launch/edit', ['title' => 'Payment link', 'reg' => $reg]);
+    }
+
+    /** Save the payment link / note. A new link moves "Registered" to "Payment link sent" and tells the student. */
+    public function update(string $id): void
+    {
+        $reg = CareerLaunchRegistration::find((int) $id) ?? $this->abort(404);
+        $d = $this->validate(['payment_link' => 'url|max:500', 'admin_note' => 'max:500'], '/admin/career-launch/' . (int) $reg['id'] . '/edit');
+        $link = trim((string) $d['payment_link']);
+        if ($link !== '' && !preg_match('#^https://#i', $link)) {
+            $this->done('The payment link must start with https://', '/admin/career-launch/' . (int) $reg['id'] . '/edit', 'error');
+        }
+        $upd = ['payment_link' => $link !== '' ? $link : null, 'admin_note' => trim((string) $d['admin_note']) ?: null];
+        $isNew = $link !== '' && $link !== (string) ($reg['payment_link'] ?? '');
+        if ($isNew && $reg['status'] === 'new') { $upd['status'] = 'payment_sent'; }
+        CareerLaunchRegistration::update((int) $reg['id'], $upd);
+        $this->audit('career_launch.payment_link_saved', 'career_launch_registration', (int) $reg['id'], null, ['has_link' => $link !== '' ? 1 : 0]);
+
+        $msg = 'Saved.';
+        if ($isNew && $reg['status'] !== 'paid') {
+            CareerLaunchService::notify($reg, 'Career Launch: your payment link is ready', 'Open your dashboard and press Pay now to unlock Stage 2.');
+            if (!empty($reg['user_id'])) {
+                try {
+                    (new \App\Services\MailService())->queue((int) $reg['user_id'], $reg['email'], 'career-launch-payment', 'Your Career Launch payment link',
+                        ['name' => explode(' ', trim($reg['full_name']))[0], 'link' => $link]);
+                } catch (\Throwable $e) { /* the dashboard button still works */ }
+            }
+            $msg = 'Saved. The student has been notified and emailed, and sees Pay now on their dashboard.';
+        }
+        $this->done($msg, '/admin/career-launch');
     }
 
     /** Move a paid student forward (a stage was completed) or back. 7 means all six stages are complete. */
