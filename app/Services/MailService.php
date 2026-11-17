@@ -15,7 +15,7 @@ class MailService
         $id = EmailLog::create([
             'user_id' => $userId, 'recipient_email' => $to, 'template_code' => $templateCode, 'subject' => $subject,
         ]);
-        $html = View::capture('emails/' . $templateCode, $data + ['subject' => $subject], 'email');
+        $html = View::capture('emails/' . $templateCode, $data + ['subject' => $subject, 'recipient' => $to], 'email');
         file_put_contents(base_path("storage/cache/email_{$id}.html"), $html);
         return $id;
     }

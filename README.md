@@ -165,3 +165,7 @@ The bell sits in the student header (and in the lesson player). Its number = unr
 
 - **Career Launch needs an account**: visitors without one are sent to sign up / log in and come back to the join form, which already knows their name, email and phone. Admin > Career Launch moves paid students through the six stages (they get a notification each time) and the student dashboard shows their progress. Run migration 007.
 - **Career Launch payment link**: Admin > Career Launch > Add payment link (run migration 008). The student gets an email, a notification and a Pay now button on their dashboard. Email log > Resend sends any logged email again.
+
+## Email design
+
+All emails share `app/Views/layouts/email.php`. Templates in `app/Views/emails/` use three small pieces: `_button.php`, `_details.php` (key facts box) and `_fallback.php` (copy-paste link). Add `<!--preheader:Short inbox preview text-->` at the top of a template to set the line shown next to the subject in the inbox.

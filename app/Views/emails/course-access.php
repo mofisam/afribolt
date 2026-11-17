@@ -1,4 +1,8 @@
-<p>Hi <?= e($student['first_name']) ?>,</p>
-<p>You now have full access to <strong><?= e($course['title']) ?></strong>.<?= $amount > 0 ? ' We received your payment of <strong>' . e(money($amount, $course['price_currency'])) . '</strong>.' : '' ?></p>
-<p>Learn at your own pace, on any device. Your progress is saved automatically.</p>
-<p><a href="<?= e(url('/learn/' . $course['slug'])) ?>" style="background:#1B8CCB;color:#fff;padding:10px 18px;border-radius:4px;text-decoration:none;font-weight:bold">Start learning</a></p>
+<!--preheader:You now have full access to <?= e($course['title']) ?>.-->
+<h1 style="margin:0 0 14px;font-size:26px;line-height:1.3;color:#0A2540">You are in, <?= e($student['first_name']) ?>!</h1>
+<p style="margin:0 0 16px">You now have full access to <strong><?= e($course['title']) ?></strong>.</p>
+<?php if ($amount > 0): ?>
+<?= App\Core\View::partial('emails/_details', ['rows' => ['Payment received' => money($amount, $course['price_currency'])]]) ?>
+<?php endif; ?>
+<p style="margin:0 0 16px">Learn at your own pace, on any device. Your progress is saved automatically.</p>
+<?= App\Core\View::partial('emails/_button', ['url' => url('/learn/' . $course['slug']), 'label' => 'Start learning']) ?>

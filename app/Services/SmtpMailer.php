@@ -80,7 +80,10 @@ class SmtpMailer
     {
         $domain = substr(strrchr($from, '@') ?: '@localhost', 1);
         $b = 'b' . bin2hex(random_bytes(12));
-        $text = trim(html_entity_decode(strip_tags(preg_replace(['#<(br|/p|/h[1-6]|/li|/tr)[^>]*>#i', '#<(style|script)\b.*?</\1>#is'], ["\n", ''], $html)), ENT_QUOTES, 'UTF-8'));
+        // Plain-text version: keep link addresses ("Label (https://...)") so the message is usable without HTML.
+        $plain = preg_replace('#<a\s[^>]*href=["\']([^"\']+)["\'][^>]*>(.*?)</a>#is', '$2 ($1)', $html);
+        $plain = preg_replace(['#<(style|script|head)\b.*?</\1>#is', '#<(br|/p|/h[1-6]|/li|/tr|/table)[^>]*>#i'], ['', "\n"], $plain);
+        $text = trim(html_entity_decode(strip_tags($plain), ENT_QUOTES, 'UTF-8'));
         $text = preg_replace("/[ \t]+\n/", "\n", preg_replace("/\n{3,}/", "\n\n", $text));
         $enc = fn(string $s) => '=?UTF-8?B?' . base64_encode($s) . '?=';
         $h = [

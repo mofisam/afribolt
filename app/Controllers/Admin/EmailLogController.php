@@ -41,7 +41,7 @@ class EmailLogController extends BaseAdminController
         $to = trim((string) $this->request->post('to', ''));
         if (!filter_var($to, FILTER_VALIDATE_EMAIL)) { $this->done('Enter a valid email address.', '/admin/email-logs', 'error'); }
         try {
-            (new \App\Services\MailService())->sendNow($to, 'AfriBolt test email', '<p>This is a test email from your AfriBolt platform. If you can read it, email sending works.</p>');
+            (new \App\Services\MailService())->sendNow($to, 'Afribolt test email', \App\Core\View::capture('emails/test', ['subject' => 'Afribolt test email', 'recipient' => $to], 'email'));
         } catch (\Throwable $e) {
             $this->done('Test failed: ' . $e->getMessage(), '/admin/email-logs', 'error');
         }
