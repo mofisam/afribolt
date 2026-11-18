@@ -21,7 +21,7 @@ class MailService
     }
 
     /** Send up to $limit queued emails. Delivery is SMTP when MAIL_HOST is set in .env, otherwise PHP mail(). */
-    public function sendQueued(int $limit = 25): int
+    public function sendQueued(int $limit = 60): int
     {
         $max = (int) config('mail.max_attempts', 3);
         $rows = Database::all("SELECT * FROM email_logs WHERE status = 'queued' AND attempts < ? ORDER BY id LIMIT ?", [$max, $limit]);

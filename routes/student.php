@@ -1,5 +1,5 @@
 <?php
-use App\Controllers\Student\{DashboardController, EnrolmentController, PaymentController, SessionController, NotificationController, ProfileController, LearningController, JobController};
+use App\Controllers\Student\{DashboardController, EnrolmentController, PaymentController, SessionController, NotificationController, ProfileController, LearningController, JobController, CareerLaunchController};
 use App\Middleware\StudentAuth;
 
 $router->post('/cohorts/{code}/register', [EnrolmentController::class, 'register'], [StudentAuth::class]);
@@ -30,6 +30,7 @@ $router->group(['prefix' => '/student', 'middleware' => [StudentAuth::class]], f
     $r->post('/notifications/{id}/read', [NotificationController::class, 'markRead']);
     $r->post('/notifications/{id}/open', [NotificationController::class, 'open']);
     $r->post('/enrolments/{id}/pay', [PaymentController::class, 'start']);
+    $r->post('/career-launch/pay', [CareerLaunchController::class, 'pay']);
     $r->get('/payments/callback', [PaymentController::class, 'callback']);
     $r->post('/sessions/{id}/join', [SessionController::class, 'join']);
 });

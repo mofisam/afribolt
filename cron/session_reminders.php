@@ -16,7 +16,7 @@ foreach ($sessions as $s) {
     foreach ($students as $u) {
         $already = Database::value("SELECT COUNT(*) FROM notifications WHERE user_id = ? AND notification_type = 'session_reminder' AND related_entity_type = 'class_session' AND related_entity_id = ?", [(int) $u['id'], (int) $s['id']]);
         if ($already) { continue; }
-        $notify->toStudent((int) $u['id'], 'session_reminder', 'Class starting soon', $s['title'] . ' starts at ' . local_date($s['starts_at'], $s['timezone'], 'g:i A'), 'class_session', (int) $s['id'], '/student/dashboard');
+        $notify->toStudent((int) $u['id'], 'session_reminder', 'Class starting soon', $s['title'] . ' starts at ' . local_date($s['starts_at'], $s['timezone'], 'g:i A'), 'class_session', (int) $s['id'], '/student/dashboard', false); // the reminder email below is the email
         $mail->queue((int) $u['id'], $u['email'], 'session-reminder', 'Class starting soon: ' . $s['title'], ['name' => $u['first_name'], 'session' => $s]);
         $count++;
     }

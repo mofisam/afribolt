@@ -25,11 +25,35 @@ class CareerLaunchService
         catch (\Throwable $e) { return null; }
     }
 
-    /** Tell the student (bell + notifications page) when something changes on their Career Launch. */
-    public static function notify(array $reg, string $title, string $message): void
+    /** True when Paystack keys are set in .env and the gateway is not switched off. */
+    public static function paystackReady(): bool
+    {
+        if ((string) config('payment.paystack.secret_key') === '') { return false; }
+        try {
+            $gw = Database::one("SELECT is_enabled FROM payment_gateways WHERE provider_code = 'paystack'");
+            return !$gw || (int) $gw['is_enabled'] === 1;
+        } catch (\Throwable $e) { return true; }
+    }
+
+    /**
+     * Tell the student (bell + notifications page) when something changes on their Career Launch.
+     * $email=false when the caller sends its own email for the same event.
+     */
+    public static function notify(array $reg, string $title, string $message, bool $email = true): void
     {
         if (!empty($reg['user_id'])) {
-            (new NotificationService())->toStudent((int) $reg['user_id'], 'career_launch', $title, $message, 'career_launch', (int) $reg['id'], '/student/dashboard');
+            (new NotificationService())->toStudent((int) $reg['user_id'], 'career_launch', $title, $message, 'career_launch', (int) $reg['id'], '/student/dashboard', $email);
         }
+    }
+
+    /** Called inside the payment transaction once Paystack has confirmed the money: unlock Stage 2, notify, email a receipt. */
+    public static function markPaid(int $registrationId, array $payment): void
+    {
+        $reg = Database::one('SELECT * FROM career_launch_registrations WHERE id = ? FOR UPDATE', [$registrationId]);
+        if (!$reg || $reg['status'] === 'paid') { return; }
+        Database::execute("UPDATE career_launch_registrations SET status = 'paid', stage = GREATEST(stage, 2) WHERE id = ?", [$registrationId]);
+        self::notify($reg, 'Career Launch: payment confirmed', 'Thank you. Your place is confirmed and Stage 2, Enrol in the course, is now unlocked.', false);
+        (new MailService())->queue(!empty($reg['user_id']) ? (int) $reg['user_id'] : null, $reg['email'], 'career-launch-paid', 'Payment received: Career Launch',
+            ['name' => explode(' ', trim($reg['full_name']))[0], 'amount' => (float) $payment['amount'], 'currency' => $payment['currency'], 'reference' => $payment['internal_reference']]);
     }
 }

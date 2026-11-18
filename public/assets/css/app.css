@@ -334,3 +334,7 @@ mark.ph { background: #fff0a6; padding: 0 .25em; border-radius: .2em; color: inh
 .field::placeholder { color: #64748b; opacity: 1; }
 select.field option { color: #0A2540; background: #fff; }
 .field:-webkit-autofill { -webkit-text-fill-color: #0A2540; }
+
+/* Offer countdown */
+.cd-box { display: inline-flex; flex-wrap: wrap; align-items: center; gap: .4rem; margin: .5rem 0 0; padding: .35rem .7rem; border-radius: .5rem; background: #fff1e6; color: #9a3412; font-size: .9rem; }
+.cd { font-variant-numeric: tabular-nums; font-weight: 800; }

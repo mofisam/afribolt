@@ -27,7 +27,7 @@ class AnnouncementController extends BaseAdminController
             ['name' => 'visibility', 'label' => 'Who can see it', 'type' => 'select', 'half' => true, 'default' => 'enrolled_students',
                 'options' => ['enrolled_students' => 'Enrolled students', 'public' => 'Public', 'staff_only' => 'Staff only']],
             ['name' => 'status', 'label' => 'Status', 'type' => 'select', 'half' => true, 'options' => self::STATUSES, 'default' => 'draft',
-                'help' => 'Enrolled students of the chosen cohort get a notification when it is first published.'],
+                'help' => 'When first published, students get a notification and an email (the chosen cohort, or every active student for "Everyone"). Use this for outages, cancelled classes and other news.'],
             ['name' => 'publish_at', 'label' => 'Show from (optional)', 'type' => 'datetime', 'half' => true, 'help' => 'Times are in ' . $this->defaultTz() . '.'],
             ['name' => 'expires_at', 'label' => 'Hide after (optional)', 'type' => 'datetime', 'half' => true],
         ];
@@ -43,10 +43,17 @@ class AnnouncementController extends BaseAdminController
             'status' => $d['status'], 'publish_at' => $this->fromInput($d['publish_at'], $tz), 'expires_at' => $this->fromInput($d['expires_at'], $tz)];
     }
 
+    /**
+     * On first publish: a cohort announcement notifies (and emails) that cohort's students; an "Everyone" announcement
+     * emails every active student. Emails go out when you press Publish, even if "Show from" is later.
+     */
     private function notifyIfFirstPublish(?array $old, array $row, int $id): void
     {
-        if ($row['status'] === 'published' && ($old['status'] ?? '') !== 'published' && $row['cohort_id'] && $row['visibility'] !== 'staff_only') {
+        if ($row['status'] !== 'published' || ($old['status'] ?? '') === 'published' || ($row['visibility'] ?? '') === 'staff_only') { return; }
+        if (!empty($row['cohort_id'])) {
             (new NotificationService())->toCohort((int) $row['cohort_id'], 'announcement', $row['title'], mb_strimwidth($row['body'], 0, 140, '...'), '/student/dashboard');
+        } else {
+            (new NotificationService())->emailAllStudents($row['title'], $row['body']);
         }
     }
 
@@ -115,7 +122,7 @@ class AnnouncementController extends BaseAdminController
         if (!isset(self::STATUSES[$new])) { $this->abort(422); }
         Announcement::update((int) $a['id'], ['status' => $new]);
         $this->audit('announcement.status_changed', 'announcement', (int) $a['id'], ['status' => $a['status']], ['status' => $new]);
-        $this->notifyIfFirstPublish($a, $a['cohort_id'] ? ['status' => $new, 'cohort_id' => $a['cohort_id'], 'visibility' => $a['visibility'], 'title' => $a['title'], 'body' => $a['body']] : ['status' => $new, 'cohort_id' => null], (int) $a['id']);
+        $this->notifyIfFirstPublish($a, ['status' => $new, 'cohort_id' => $a['cohort_id'], 'visibility' => $a['visibility'], 'title' => $a['title'], 'body' => $a['body']], (int) $a['id']);
         $this->done("Announcement {$new}.", '/admin/announcements');
     }
 }

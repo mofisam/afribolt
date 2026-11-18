@@ -28,8 +28,11 @@ class PaymentController extends Controller
         $payment = $reference ? Payment::findByReference($reference) : null;
         $uid = (int) Auth::id('student');
 
-        $course = null; $owned = false;
-        if ($payment && $payment['enrolment_id']) {
+        $course = null; $owned = false; $career = false;
+        if ($payment && !empty($payment['career_launch_id'])) {
+            $career = (bool) \App\Core\Database::one('SELECT id FROM career_launch_registrations WHERE id = ? AND user_id = ?', [(int) $payment['career_launch_id'], $uid]);
+            $owned = $career;
+        } elseif ($payment && $payment['enrolment_id']) {
             $owned = (bool) Enrolment::findOwned((int) $payment['enrolment_id'], $uid);
         } elseif ($payment && $payment['course_access_id']) {
             $course = \App\Core\Database::one('SELECT c.slug FROM course_access ca JOIN courses c ON c.id = ca.course_id WHERE ca.id = ? AND ca.user_id = ?', [(int) $payment['course_access_id'], $uid]);
@@ -40,6 +43,10 @@ class PaymentController extends Controller
             $this->redirect('/student/dashboard');
         }
         $result = (new PaymentService())->verifyAndConfirm($reference);
+        if ($career) {
+            Session::flash($result['ok'] ? 'success' : 'error', $result['ok'] ? 'Payment confirmed. Stage 2 is now unlocked. Welcome to Career Launch!' : $result['message']);
+            $this->redirect('/student/dashboard');
+        }
         if ($course) {
             Session::flash($result['ok'] ? 'success' : 'error', $result['ok'] ? 'Payment confirmed. Enjoy the course!' : $result['message']);
             $this->redirect($result['ok'] ? '/learn/' . $course['slug'] : '/courses/' . $course['slug']);

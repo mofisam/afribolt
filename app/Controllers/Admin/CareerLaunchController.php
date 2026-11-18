@@ -2,7 +2,7 @@
 namespace App\Controllers\Admin;
 
 use App\Models\CareerLaunchRegistration;
-use App\Services\CareerLaunchService;
+use App\Services\{CareerLaunchPricing, CareerLaunchService};
 
 /** Career Launch founding-price registrations. The team sends the payment link manually, then marks the person paid. */
 class CareerLaunchController extends BaseAdminController
@@ -18,11 +18,15 @@ class CareerLaunchController extends BaseAdminController
         if ($q = trim((string) $this->request->query('q', ''))) { $where[] = '(full_name LIKE ? OR email LIKE ? OR phone LIKE ?)'; array_push($p, "%{$q}%", "%{$q}%", "%{$q}%"); }
         [$rows, $pager] = $this->paged('career_launch_registrations WHERE ' . implode(' AND ', $where), $p, '*', 'created_at DESC');
         $paid = (int) \App\Core\Database::value("SELECT COUNT(*) FROM career_launch_registrations WHERE status = 'paid'");
-        $seats = \App\Controllers\Public\OpportunitiesController::FOUNDING_SEATS;
+        $cur = CareerLaunchPricing::current();
+        $seats = $cur['seats'];
 
         $this->page('admin/crud/index', [
             'title' => 'Career Launch registrations', 'rows' => $rows, 'pager' => $pager,
-            'intro' => '<p><strong>' . $paid . ' of ' . $seats . '</strong> founding places paid. Send each person their payment link, then mark them <em>Paid</em> here. The public page counts only <em>Paid</em> places.</p>',
+            'intro' => '<p><strong>' . $paid . ' of ' . $seats . '</strong> founding places paid. Students pay by Paystack from their dashboard and are marked <em>Paid</em> automatically. You can also mark someone paid by hand.</p>'
+                . '<p class="mt-2">Price now: <strong>' . e(CareerLaunchPricing::naira($cur['price'])) . '</strong> '
+                . ($cur['active'] ? '(founding offer is live' . ($cur['ends_at'] ? ', ends ' . e(local_date($cur['ends_at'], $this->defaultTz(), 'j M Y, g:i A')) : '') . ')' : '(founding offer is off)')
+                . ' &middot; <a class="underline text-bolt-dark font-bold" href="' . e(url('/admin/career-launch-pricing')) . '">Change price &amp; offer timer</a></p>',
             'filters' => [['name' => 'q', 'label' => 'Search name, email or phone'], ['name' => 'status', 'label' => 'Status', 'type' => 'select', 'options' => self::STATUSES]],
             'columns' => [
                 ['label' => 'Person', 'html' => true, 'render' => fn($r) => '<strong>' . e($r['full_name']) . '</strong><br><a class="underline" href="mailto:' . e($r['email']) . '">' . e($r['email']) . '</a><br><span class="text-slate-500">' . e($r['phone']) . '</span>'],
@@ -70,6 +74,31 @@ class CareerLaunchController extends BaseAdminController
         $this->done($r['full_name'] . ': ' . strtolower(self::STATUSES[$new]) . '.', '/admin/career-launch');
     }
 
+    public function pricing(): void
+    {
+        $tz = $this->defaultTz(); $p = CareerLaunchPricing::current();
+        $this->page('admin/career-launch/pricing', ['title' => 'Price & offer timer', 'p' => $p, 'tz' => $tz, 'endsInput' => $this->toInput($p['ends_at'], $tz)]);
+    }
+
+    public function savePricing(): void
+    {
+        $back = '/admin/career-launch-pricing';
+        $d = $this->validate(['offer_price' => 'required|numeric', 'regular_price' => 'required|numeric', 'seats' => 'required|integer', 'offer_ends' => 'date'], $back);
+        foreach (['offer_price', 'regular_price', 'seats'] as $k) { if ((float) $d[$k] < 0) { $this->done('Prices and places cannot be negative.', $back, 'error'); } }
+        $tz = $this->defaultTz();
+        $ends = $this->request->post('clear_timer') === '1' ? null : $this->fromInput($d['offer_ends'], $tz);
+        $old = CareerLaunchPricing::settings();
+        CareerLaunchPricing::set('offer_price', (string) (float) $d['offer_price'], $this->adminId());
+        CareerLaunchPricing::set('regular_price', (string) (float) $d['regular_price'], $this->adminId());
+        CareerLaunchPricing::set('seats', (string) (int) $d['seats'], $this->adminId());
+        CareerLaunchPricing::set('offer_ends_at', $ends, $this->adminId());
+        $this->audit('career_launch.pricing_saved', 'platform_setting', null, null,
+            ['offer_price' => (float) $d['offer_price'], 'regular_price' => (float) $d['regular_price'], 'seats' => (int) $d['seats'], 'ends_at' => $ends, 'was_offer_price' => $old['offer_price']]);
+        $msg = 'Price and offer timer saved.';
+        if ($ends && strtotime($ends . ' UTC') <= time()) { $msg .= ' Note: that end time has already passed, so the offer is off right now.'; }
+        $this->done($msg, $back);
+    }
+
     public function edit(string $id): void
     {
         $reg = CareerLaunchRegistration::find((int) $id) ?? $this->abort(404);
@@ -93,11 +122,11 @@ class CareerLaunchController extends BaseAdminController
 
         $msg = 'Saved.';
         if ($isNew && $reg['status'] !== 'paid') {
-            CareerLaunchService::notify($reg, 'Career Launch: your payment link is ready', 'Open your dashboard and press Pay now to unlock Stage 2.');
+            CareerLaunchService::notify($reg, 'Career Launch: your payment link is ready', 'Open your dashboard and press Pay now to unlock Stage 2.', false); // the payment email below covers it
             if (!empty($reg['user_id'])) {
                 try {
                     (new \App\Services\MailService())->queue((int) $reg['user_id'], $reg['email'], 'career-launch-payment', 'Your Career Launch payment link',
-                        ['name' => explode(' ', trim($reg['full_name']))[0], 'link' => $link]);
+                        ['name' => explode(' ', trim($reg['full_name']))[0], 'link' => $link, 'price' => CareerLaunchPricing::naira(CareerLaunchPricing::current()['price'])]);
                 } catch (\Throwable $e) { /* the dashboard button still works */ }
             }
             $msg = 'Saved. The student has been notified and emailed, and sees Pay now on their dashboard.';

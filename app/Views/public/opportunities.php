@@ -1,5 +1,5 @@
 <?php
-/** @var ?int $seatsLeft @var int $seatsTotal @var ?array $student @var ?array $registration */
+/** @var ?int $seatsLeft @var int $seatsTotal @var ?array $student @var ?array $registration @var array $pricing @var bool $payOnline */
 $n = fn(int $v) => '₦' . number_format($v);
 $stages = \App\Services\CareerLaunchService::STAGES;
 $values = [
@@ -10,9 +10,9 @@ $values = [
   'Stage 6: Job Ready' => [['CV revamp (2 pages, ATS-friendly, 1 revision)', 40000], ['LinkedIn headline and summary rewrite', 20000], ['Cover letter', 10000], ['Reference letter and job reference support', 40000]],
 ];
 $total = 0; foreach ($values as $rows) { foreach ($rows as $r) { $total += $r[1]; } }
-$founding = 50000;
+$founding = (int) $pricing['price'];
 $faqs = [
-  ['What happens after the first 100 students?', 'The ₦50,000 founding price is for the first 100 students to pay. Once those places are taken it closes. <a class="underline" href="' . e(url('/contact?type=career_consultation')) . '">Contact us</a> to ask what is available next.'],
+  ['What happens when the founding offer ends?', 'The founding price closes when the countdown reaches zero or once the first ' . (int) $seatsTotal . ' students have paid, whichever comes first. After that the regular price of ' . $n((int) $pricing['regular_price']) . ' applies. <a class="underline" href="' . e(url('/contact?type=career_consultation')) . '">Contact us</a> if you have questions.'],
   ['Do I need experience to join?', 'The intake form asks for your target role and experience so we can plan your path. If you are not sure the programme fits you, <a class="underline" href="' . e(url('/contact?type=career_consultation')) . '">book a free consultation</a> before you pay.'],
   ['When do I get my reference letter?', 'After you complete your assigned projects. It is issued together with your revamped CV at Stage 6, and it confirms what you did.'],
   ['How long does it take?', 'You study the course at your own pace. The Full Accelerator project runs for 3 to 6 months. Your total time depends on how quickly you move through each stage.'],
@@ -29,10 +29,11 @@ $faqs = [
       <a class="btn btn-accent mt-6" href="#register"><?= $registration ? 'See my progress' : 'Register now' ?></a>
     </div>
     <div class="bg-white text-ink rounded-lg p-6">
-      <p class="inline-block bg-volt font-bold text-sm px-3 py-1 rounded">Founding price: first <?= (int) $seatsTotal ?> students</p>
+      <p class="inline-block bg-volt font-bold text-sm px-3 py-1 rounded"><?= $pricing['active'] ? 'Founding price: first ' . (int) $seatsTotal . ' students' : 'Career Launch price' ?></p>
       <p class="mt-3 text-slate-600">Valued at <s><?= e($n($total)) ?></s></p>
       <p class="font-display font-extrabold text-5xl"><?= e($n($founding)) ?> <span class="text-lg font-semibold text-slate-600">one-time</span></p>
-      <p class="mt-1 text-slate-700">Limited to the first <?= (int) $seatsTotal ?> students to pay.<?= $seatsLeft !== null ? ' <strong>' . (int) $seatsLeft . ' of ' . (int) $seatsTotal . ' places left.</strong>' : '' ?></p>
+      <?= App\Core\View::partial('partials/countdown', ['pricing' => $pricing]) ?>
+      <p class="mt-1 text-slate-700"><?= $pricing['active'] ? 'Limited to the first ' . (int) $seatsTotal . ' students to pay. <strong>' . (int) $seatsLeft . ' of ' . (int) $seatsTotal . ' places left.</strong>' : 'The founding offer has ended.' ?></p>
       <ul class="mt-4 space-y-1 list-disc pl-5"><?php foreach (['Course and certificate', 'Live projects and the Full Accelerator', 'Interview prep and CV revamp', 'Job reference support'] as $i): ?><li><?= e($i) ?></li><?php endforeach; ?></ul>
     </div>
   </div>
@@ -74,7 +75,7 @@ $faqs = [
         <?php foreach ($rows as [$label, $v]): ?><tr class="border-t"><td class="p-3"><?= e($label) ?></td><td class="p-3 text-right whitespace-nowrap"><?= e($n($v)) ?></td></tr><?php endforeach; ?>
       <?php endforeach; ?>
         <tr class="border-t font-bold"><td class="p-3">Total value</td><td class="p-3 text-right"><?= e($n($total)) ?></td></tr>
-        <tr class="border-t font-bold bg-volt/30"><td class="p-3">Founding price, first <?= (int) $seatsTotal ?> students</td><td class="p-3 text-right"><?= e($n($founding)) ?></td></tr>
+        <tr class="border-t font-bold bg-volt/30"><td class="p-3"><?= $pricing['active'] ? 'Founding price, first ' . (int) $seatsTotal . ' students' : 'Programme price' ?></td><td class="p-3 text-right"><?= e($n($founding)) ?></td></tr>
       </tbody>
     </table>
   </div>
@@ -102,19 +103,17 @@ $faqs = [
         <p class="inline-block bg-volt font-bold text-sm px-3 py-1 rounded"><?= e(\App\Services\CareerLaunchService::STATUS_LABELS[$st] ?? $st) ?></p>
         <p class="mt-3 font-bold text-xl">You have joined Career Launch, <?= e($student['first_name']) ?>.</p>
         <p class="mt-1 text-slate-700"><?= match ($st) {
-            'payment_sent' => 'Your payment link is ready. Pay to unlock Stage 2. It is also on your dashboard.',
+            'payment_sent' => 'Your payment is waiting. Pay to unlock Stage 2.',
             'paid' => 'Your place is confirmed. Follow your stages on your dashboard.',
             'cancelled' => 'This registration was cancelled. Contact us if you would like to rejoin.',
-            default => 'We will send your payment link and next steps to ' . e($registration['email']) . '.',
+            default => $payOnline ? 'You can pay now to unlock Stage 2.' : 'We will send your payment link and next steps to ' . e($registration['email']) . '.',
         } ?></p>
-        <div class="mt-4 flex flex-wrap gap-3">
-          <?php if ($st !== 'paid' && $st !== 'cancelled' && !empty($registration['payment_link'])): ?><a class="btn btn-accent" href="<?= e($registration['payment_link']) ?>" target="_blank" rel="noopener noreferrer">Pay now<span class="sr-only"> (opens in a new tab)</span></a><?php endif; ?>
-          <a class="btn btn-primary" href="<?= e(url('/student/dashboard')) ?>">Go to my dashboard</a>
-        </div>
+        <?php if ($st !== 'paid' && $st !== 'cancelled'): ?><div class="mt-4"><?= App\Core\View::partial('partials/career-pay', ['pricing' => $pricing, 'payOnline' => $payOnline, 'registration' => $registration]) ?></div><?php endif; ?>
+        <a class="btn btn-primary mt-4" href="<?= e(url('/student/dashboard')) ?>">Go to my dashboard</a>
       </div>
 
     <?php else: ?>
-      <p class="mt-2 text-slate-200">You are signed in, so we already have your details. Tell us what role you are aiming for and we will send your payment link and next steps.</p>
+      <p class="mt-2 text-slate-200">You are signed in, so we already have your details. Tell us what role you are aiming for<?= $payOnline ? ', then pay securely online to unlock Stage 2.' : ' and we will send your payment link and next steps.' ?></p>
       <form method="post" action="<?= e(url('/career-accelerator/register')) ?>" class="mt-6 bg-white text-ink rounded-lg p-6 space-y-4" novalidate>
         <?= csrf_field() ?>
         <div class="hidden" aria-hidden="true"><label>Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
@@ -133,8 +132,8 @@ $faqs = [
           <div><label class="label" for="cl_li">LinkedIn link (optional)</label><input class="field" type="url" id="cl_li" name="linkedin_url" value="<?= e(old('linkedin_url')) ?>" placeholder="https://www.linkedin.com/in/..."><?= field_error('linkedin_url') ?></div>
           <div><label class="label" for="cl_ref">Referral code (optional)</label><input class="field" id="cl_ref" name="referral_code" value="<?= e(old('referral_code')) ?>"><?= field_error('referral_code') ?></div>
         </div>
-        <button class="btn btn-accent" type="submit">Join and get payment link</button>
-        <p class="text-sm text-slate-700">Founding price: <?= e($n($founding)) ?> for the first <?= (int) $seatsTotal ?> students to pay. Valued at <?= e($n($total)) ?>. Refunds are available only before any stage work begins.</p>
+        <button class="btn btn-accent" type="submit"><?= $payOnline ? 'Join Career Launch' : 'Join and get payment link' ?></button>
+        <p class="text-sm text-slate-700"><?= $pricing['active'] ? 'Founding price: ' . e($n($founding)) . ' for the first ' . (int) $seatsTotal . ' students to pay.' : 'Price: ' . e($n($founding)) . '.' ?> Valued at <?= e($n($total)) ?>. Refunds are available only before any stage work begins.</p>
       </form>
     <?php endif; ?>
   </div>
@@ -171,3 +170,4 @@ $faqs = [
     <a class="btn btn-accent mt-4" href="<?= e(url('/contact?type=career_consultation')) ?>">Book your free career consultation</a>
   </div>
 </section>
+<script src="<?= e(asset('js/countdown.js')) ?>" defer></script>

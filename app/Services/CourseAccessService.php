@@ -78,7 +78,7 @@ class CourseAccessService
         CourseCatalogService::refresh((int) $a['course_id']);
         $course = Course::find((int) $a['course_id']);
         $student = User::find((int) $a['user_id']);
-        (new NotificationService())->toStudent((int) $a['user_id'], 'course_access', 'Payment confirmed', "You now have full access to {$course['title']}.", 'course', (int) $a['course_id'], '/learn/' . $course['slug']);
+        (new NotificationService())->toStudent((int) $a['user_id'], 'course_access', 'Payment confirmed', "You now have full access to {$course['title']}.", 'course', (int) $a['course_id'], '/learn/' . $course['slug'], false);
         if ($student) {
             (new MailService())->queue((int) $student['id'], $student['email'], 'course-access', 'You\'re in: ' . $course['title'], ['student' => $student, 'course' => $course, 'amount' => $amount]);
         }

@@ -3,27 +3,18 @@ namespace App\Controllers\Public;
 
 use App\Core\{Auth, Controller, Database, Session};
 use App\Models\CareerLaunchRegistration;
-use App\Services\CareerLaunchService;
+use App\Services\{CareerLaunchPricing, CareerLaunchService};
 
 /** Career Launch programme page. Joining requires a student account; name, email and phone come from it. */
 class OpportunitiesController extends Controller
 {
-    public const FOUNDING_SEATS = 100;
-
-    /** Founding places still open. Null if the table is not installed yet (page still works). */
-    private function seatsLeft(): ?int
-    {
-        try {
-            $taken = (int) Database::value("SELECT COUNT(*) FROM career_launch_registrations WHERE status = 'paid'");
-            return max(0, self::FOUNDING_SEATS - $taken);
-        } catch (\Throwable $e) { return null; }
-    }
-
     public function index(): void
     {
         $student = Auth::user('student');
+        $pricing = CareerLaunchPricing::current();
         $this->view('public/opportunities', [
-            'title' => 'Career Launch', 'seatsLeft' => $this->seatsLeft(), 'seatsTotal' => self::FOUNDING_SEATS,
+            'title' => 'Career Launch', 'pricing' => $pricing, 'seatsLeft' => $pricing['seats_left'], 'seatsTotal' => $pricing['seats'],
+            'payOnline' => CareerLaunchService::paystackReady(),
             'student' => $student, 'registration' => $student ? CareerLaunchService::forUser((int) $student['id']) : null,
         ]);
     }
@@ -69,7 +60,7 @@ class OpportunitiesController extends Controller
         if ($legacy && empty($legacy['user_id'])) { CareerLaunchRegistration::update((int) $legacy['id'], $row); }
         else { CareerLaunchRegistration::create($row + ['ip_address' => $this->request->ip()]); }
 
-        Session::flash('success', 'You are in. We will send your payment link and next steps to ' . $email . '. You can follow your progress on your dashboard.');
+        Session::flash('success', CareerLaunchService::paystackReady() ? 'You are in! You can pay securely from your dashboard to unlock Stage 2.' : 'You are in. We will send your payment link and next steps to ' . $email . '. You can follow your progress on your dashboard.');
         $this->redirect('/career-accelerator#register');
     }
 }

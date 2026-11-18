@@ -55,6 +55,24 @@ class PaymentService
         return $init['authorization_url'];
     }
 
+    /** Start Paystack checkout for Career Launch. The amount is the price at this moment (see CareerLaunchPricing). */
+    public function initiateCareerLaunch(array $registration, array $student, float $amount): string
+    {
+        $gw = PaymentGateway::findBy('provider_code', $this->gateway->code());
+        if ($gw && !(int) $gw['is_enabled']) {
+            throw new \RuntimeException('Payments are currently disabled.');
+        }
+        if ($amount <= 0) { throw new \RuntimeException('Nothing to pay.'); }
+        $ref = 'PAY-' . strtoupper(bin2hex(random_bytes(8)));
+        Payment::create([
+            'enrolment_id' => null, 'career_launch_id' => (int) $registration['id'], 'gateway_id' => $gw['id'] ?? null,
+            'payment_type' => 'career_launch', 'internal_reference' => $ref, 'provider_reference' => $ref,
+            'amount' => $amount, 'currency' => 'NGN', 'status' => 'initiated',
+        ]);
+        $init = $this->gateway->initialize($student['email'], $amount, 'NGN', $ref, url('/student/payments/callback'));
+        return $init['authorization_url'];
+    }
+
     /**
      * Called by BOTH the browser callback and the webhook. Safe to call repeatedly (idempotent).
      * An enrolment is only confirmed after the provider confirms amount + currency server-side.
@@ -94,6 +112,10 @@ class PaymentService
                 'provider_transaction_id' => $result['transaction_id'], 'provider_response' => json_encode($result['raw']),
             ]);
 
+            if (!empty($payment['career_launch_id'])) { // Career Launch
+                CareerLaunchService::markPaid((int) $payment['career_launch_id'], $payment);
+                return ['ok' => true, 'message' => 'Payment confirmed.'];
+            }
             if (empty($payment['enrolment_id'])) { // self-paced course purchase
                 (new CourseAccessService())->activate((int) $payment['course_access_id'], (float) $payment['amount'], $payment['currency']);
                 return ['ok' => true, 'message' => 'Payment confirmed.'];
@@ -114,7 +136,7 @@ class PaymentService
             if ($confirm) {
                 $student = User::find((int) $enrol['student_id']);
                 (new NotificationService())->toStudent((int) $enrol['student_id'], 'payment_confirmed', 'Payment confirmed',
-                    'Your seat is confirmed. See you in class!', 'enrolment', (int) $enrol['id'], '/student/dashboard');
+                    'Your seat is confirmed. See you in class!', 'enrolment', (int) $enrol['id'], '/student/dashboard', false);
                 if ($student) {
                     (new MailService())->queue((int) $student['id'], $student['email'], 'payment-confirmed',
                         'Payment confirmed', ['student' => $student, 'enrolment' => $enrol, 'payment' => $payment]);
@@ -144,6 +166,13 @@ class PaymentService
                 'refunded_amount' => $refunded,
                 'status' => $refunded >= (float) $p['amount'] ? 'refunded' : 'partially_refunded',
             ]);
+            if (!empty($p['career_launch_id'])) { // Career Launch: a full refund cancels the registration
+                if ($refunded >= (float) $p['amount']) {
+                    Database::execute("UPDATE career_launch_registrations SET status = 'cancelled' WHERE id = ?", [(int) $p['career_launch_id']]);
+                }
+                AuditService::log('payment.refund_recorded', 'payment', $paymentId, ['refunded_amount' => $p['refunded_amount']], ['refunded_amount' => $refunded, 'note' => $note]);
+                return ['ok' => true, 'message' => 'Refund recorded.'];
+            }
             if (empty($p['enrolment_id'])) { // self-paced course payment: a full refund ends access
                 if ($refunded >= (float) $p['amount']) {
                     \App\Models\CourseAccess::update((int) $p['course_access_id'], ['status' => 'refunded']);

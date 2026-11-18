@@ -6,6 +6,8 @@
     <div><label class="label" for="last_name">Last name</label><input class="field" id="last_name" name="last_name" value="<?= e(old('last_name', $student['last_name'])) ?>" required><?= field_error('last_name') ?></div>
     <div><label class="label" for="phone">Phone</label><input class="field" id="phone" name="phone" value="<?= e(old('phone', $student['phone'])) ?>"><?= field_error('phone') ?></div>
     <p class="text-sm text-slate-500">Email: <?= e($student['email']) ?></p>
+    <label class="flex items-start gap-2"><input type="checkbox" name="email_notifications" value="1" class="mt-1" <?= (int) ($student['email_notifications'] ?? 1) === 1 ? 'checked' : '' ?>>
+      <span><span class="font-bold">Email me about announcements and notifications</span><span class="block text-sm text-slate-600">For example a cancelled class or an important update. You will still see them in the bell on your dashboard.</span></span></label>
     <button class="btn btn-primary" type="submit">Save changes</button>
   </form>
   <form method="post" action="<?= e(url('/student/profile/password')) ?>" class="bg-white border rounded-lg p-6 space-y-4" novalidate>

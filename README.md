@@ -16,6 +16,7 @@ Built from the project requirements doc and `live_online_educational_platform_sc
    mysql -u root -p < database/migrations/006_announcement_seen.sql
    mysql -u root -p < database/migrations/007_career_launch_users.sql
    mysql -u root -p < database/migrations/008_career_launch_payment_link.sql
+   mysql -u root -p < database/migrations/009_career_launch_paystack_email_notifications.sql
    ```
 2. **Config**: `cp .env.example .env`, then set `DB_*`, `APP_URL`, and `SEED_ADMIN_PASSWORD`.
 3. **Seed**
@@ -169,3 +170,9 @@ The bell sits in the student header (and in the lesson player). Its number = unr
 ## Email design
 
 All emails share `app/Views/layouts/email.php`. Templates in `app/Views/emails/` use three small pieces: `_button.php`, `_details.php` (key facts box) and `_fallback.php` (copy-paste link). Add `<!--preheader:Short inbox preview text-->` at the top of a template to set the line shown next to the subject in the inbox.
+
+## Career Launch price, timer and Paystack
+
+- **Price & offer timer**: Admin > Career Launch > "Change price & offer timer". Set the founding price, an end date and time, the number of founding places and the regular price that applies afterwards. Students see a live countdown; the price switches by itself when it runs out (or when the places are all paid).
+- **Paystack**: put `PAYSTACK_PUBLIC_KEY` and `PAYSTACK_SECRET_KEY` in `.env`, then in the Paystack dashboard (Settings > API Keys & Webhooks) set the webhook URL to `https://YOUR-DOMAIN/webhooks/paystack`. Students press **Pay now** on their dashboard; when Paystack confirms, Stage 2 unlocks and they get a receipt email. Run migration 009 (it also adds the Paystack gateway row the webhook needs).
+- **Emails for notifications and announcements**: every new notification emails the student ("You have a new notification from Afribolt"); announcements say "You have one announcement from Afribolt". An announcement for "Everyone" emails all active students. Students can switch these emails off on their profile page. Emails are sent by `cron/send_queued_emails.php` (run every minute, 60 per run).

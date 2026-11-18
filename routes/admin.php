@@ -57,6 +57,8 @@ $router->group(['prefix' => '/admin', 'middleware' => [AdminAuth::class]], funct
 
     // Career Launch registrations
     $r->get('/career-launch', [A\CareerLaunchController::class, 'index']);
+    $r->get('/career-launch-pricing', [A\CareerLaunchController::class, 'pricing']);
+    $r->post('/career-launch-pricing', [A\CareerLaunchController::class, 'savePricing']);
     $r->get('/career-launch/{id}/edit', [A\CareerLaunchController::class, 'edit']);
     $r->post('/career-launch/{id}', [A\CareerLaunchController::class, 'update']);
     $r->post('/career-launch/{id}/status', [A\CareerLaunchController::class, 'status']);

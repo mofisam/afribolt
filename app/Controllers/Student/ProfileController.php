@@ -15,6 +15,8 @@ class ProfileController extends Controller
     {
         $data = $this->validate(['first_name' => 'required|max:100', 'last_name' => 'required|max:100', 'phone' => 'phone'], '/student/profile');
         User::update((int) Auth::id('student'), $data);
+        try { User::update((int) Auth::id('student'), ['email_notifications' => $this->request->post('email_notifications') === '1' ? 1 : 0]); }
+        catch (\Throwable $e) { /* migration 009 not run yet */ }
         Session::flash('success', 'Profile updated.');
         $this->redirect('/student/profile');
     }

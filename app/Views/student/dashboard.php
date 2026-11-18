@@ -9,7 +9,7 @@ if (!empty($career) && $career['status'] !== 'cancelled'):
     $note = match ($career['status']) {
         'payment_sent' => 'Your payment link is ready. Pay to unlock Stage 2.',
         'paid' => $cur >= 7 ? 'You have completed all six stages. Well done!' : 'Now on Stage ' . $cur . ': ' . $stages[$cur - 1][1],
-        default => 'We will send your payment link and next steps to ' . $career['email'] . '.',
+        default => $payOnline ? 'You can pay now to unlock Stage 2.' : 'We will send your payment link and next steps to ' . $career['email'] . '.',
     };
 ?>
 <section class="mt-6 bg-white border rounded-lg p-5" aria-labelledby="clh">
@@ -26,20 +26,15 @@ if (!empty($career) && $career['status'] !== 'cancelled'):
     <?php endforeach; ?>
   </ol>
   <p class="mt-3 text-slate-700"><?= e($note) ?></p>
-  <?php if (!$paid && !empty($career['payment_link'])): ?>
-    <div class="mt-4 rounded-lg bg-bolt-tint p-4 flex flex-wrap items-center justify-between gap-3">
-      <p><strong>Founding price: &#8358;50,000</strong> one-time. Paying unlocks Stage 2.</p>
-      <a class="btn btn-accent" href="<?= e($career['payment_link']) ?>" target="_blank" rel="noopener noreferrer">Pay now<span class="sr-only"> (opens in a new tab)</span></a>
-    </div>
-    <p class="mt-2 text-sm text-slate-600">Already paid? We confirm payments by hand, so your stages unlock once the team marks you paid.</p>
-  <?php elseif (!$paid): ?><p class="mt-2 text-sm text-slate-600">Your payment link will appear here as soon as it is ready, and we will email and notify you.</p><?php endif; ?>
+  <?php if (!$paid): ?><div class="mt-4"><?= \App\Core\View::partial('partials/career-pay', ['pricing' => $pricing, 'payOnline' => $payOnline, 'registration' => $career]) ?></div><?php endif; ?>
   <?php if ($paid && $cur < 7): ?><p class="text-sm mt-1"><strong>Done when:</strong> <?= e($stages[$cur - 1][2]) ?>.</p><?php endif; ?>
   <p class="mt-3 text-sm"><a class="font-bold underline text-bolt-dark" href="<?= e(url('/career-accelerator')) ?>">Programme details</a><?= $cur === 2 && $paid ? ' &middot; <a class="font-bold underline text-bolt-dark" href="' . e(url('/student/learning')) . '">Go to my courses</a>' : '' ?></p>
 </section>
 <?php else: ?>
 <section class="mt-6 bg-ink text-white rounded-lg p-5 flex flex-wrap items-center justify-between gap-4" aria-labelledby="clh">
   <div class="max-w-xl"><h2 id="clh" class="font-display font-bold text-xl">Career Launch: learn it, build it, get hired</h2>
-    <p class="text-slate-200 mt-1">Real project work, mock interviews, a revamped CV and a reference from Afribolt. Founding price &#8358;50,000 for the first 100 students.</p></div>
+    <p class="text-slate-200 mt-1">Real project work, mock interviews, a revamped CV and a reference from Afribolt. <?= $pricing['active'] ? 'Founding price ' . e(\App\Services\CareerLaunchPricing::naira($pricing['price'])) . ' for the first ' . (int) $pricing['seats'] . ' students.' : 'Price: ' . e(\App\Services\CareerLaunchPricing::naira($pricing['price'])) . '.' ?></p>
+    <?= \App\Core\View::partial('partials/countdown', ['pricing' => $pricing]) ?></div>
   <a class="btn btn-accent" href="<?= e(url('/career-accelerator#register')) ?>">Join with your account</a>
 </section>
 <?php endif; ?>
@@ -121,3 +116,4 @@ if (!empty($career) && $career['status'] !== 'cancelled'):
   <?php endforeach; ?>
 </div>
 <?php endif; ?>
+<script src="<?= e(asset('js/countdown.js')) ?>" defer></script>
