@@ -39,6 +39,7 @@ class JobController extends Controller
         $this->view('public/jobs/show', [
             'title' => $job['title'] . ($job['company'] ? ' at ' . $job['company'] : ''), 'job' => $job, 'similar' => $similar,
             'courses' => (new JobRecommendationService())->coursesForJob($job),
+            'hasApplied' => ($uid && !empty($job['employer_id'])) ? (bool) Database::value('SELECT COUNT(*) FROM job_applications WHERE user_id = ? AND job_id = ?', [$uid, (int) $job['id']]) : false,
             'isSaved' => $uid ? (bool) Database::value('SELECT COUNT(*) FROM saved_jobs WHERE user_id = ? AND job_id = ?', [$uid, (int) $job['id']]) : false,
             'skills' => (array) json_decode((string) $job['skills'], true), 'flags' => (array) json_decode((string) $job['scam_flags'], true),
         ]);
@@ -48,6 +49,7 @@ class JobController extends Controller
     public function apply(string $slug): void
     {
         $job = Job::findPublishedBySlug($slug) ?? $this->abort(404);
+        if (!empty($job['employer_id'])) { $this->redirect('/student/jobs/' . $job['slug'] . '/apply'); } // posted by a company on Afribolt: apply here
         if (!preg_match('#^https?://#i', (string) $job['source_url'])) { $this->abort(404); }
         Database::execute('UPDATE jobs SET apply_clicks = apply_clicks + 1 WHERE id = ?', [(int) $job['id']]);
         header('Referrer-Policy: no-referrer');

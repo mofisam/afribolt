@@ -1,7 +1,7 @@
 <?php use App\Core\View; ?>
 <div class="flex flex-wrap items-end justify-between gap-3">
   <div><h1 class="text-3xl font-extrabold">Jobs for you</h1><p class="text-slate-600">Picked from fresh Nigerian openings using your interests and what you are learning.</p></div>
-  <div class="flex gap-2"><a class="btn btn-ghost !py-2" href="<?= e(url('/student/jobs/preferences')) ?>">Job preferences</a><a class="btn btn-primary !py-2" href="<?= e(url('/jobs')) ?>">Browse all jobs</a></div>
+  <div class="flex flex-wrap gap-2"><a class="btn btn-ghost !py-2" href="<?= e(url('/student/applications')) ?>">My applications</a><a class="btn btn-ghost !py-2" href="<?= e(url('/student/jobs/preferences')) ?>">Job preferences</a><a class="btn btn-primary !py-2" href="<?= e(url('/jobs')) ?>">Browse all jobs</a></div>
 </div>
 <nav class="mt-5 flex gap-1 border-b" aria-label="Jobs">
   <a class="pl-tab" href="<?= e(url('/student/jobs')) ?>" <?= $tab === 'foryou' ? 'aria-selected="true"' : '' ?>>For you</a>

@@ -1,3 +1,4 @@
+<?php $native = !empty($job['employer_id']); $applied = !empty($hasApplied); ?>
 <?php
 use App\Core\{Auth, View};
 $L = job_labels();
@@ -16,13 +17,13 @@ $daysLeft = $job['deadline_at'] ? (int) ceil((strtotime($job['deadline_at'] . ' 
     <div class="flex gap-4 min-w-0">
       <div class="jlogo !w-16 !h-16 !text-2xl" style="background:<?= $bg ?>" aria-hidden="true"><?= e(mb_strtoupper(mb_substr((string) ($job['company'] ?: $job['title']), 0, 1))) ?></div>
       <div class="min-w-0"><h1 class="text-2xl md:text-3xl font-extrabold leading-tight"><?= e($job['title']) ?></h1>
-        <p class="text-lg text-slate-700"><?= e((string) $job['company']) ?></p>
+        <p class="text-lg text-slate-700"><?= e((string) $job['company']) ?><?php if ($native): ?> <span class="badge badge-open" title="This company's documents were checked by Afribolt">&#10003; Verified employer</span><?php endif; ?></p>
         <p class="text-slate-600"><?= e($job['state'] ? $job['state'] . ($job['city'] ? ' (' . $job['city'] . ')' : '') : (string) $job['location_text']) ?><?= $job['work_mode'] === 'remote' ? ' &middot; Remote' : '' ?></p>
         <div class="jchips"><?php foreach ([$L['type'][$job['employment_type']], $L['mode'][$job['work_mode']], $L['level'][$job['experience_level']]] as $c): if ($c): ?><span class="jchip"><?= e($c) ?></span><?php endif; endforeach; ?>
           <?php if ($sal): ?><span class="jchip pay"><?= e($sal) ?></span><?php endif; ?></div></div>
     </div>
     <div class="flex flex-wrap gap-2 shrink-0">
-      <a class="btn btn-accent !py-3 !px-6" href="<?= e(url('/jobs/' . $job['slug'] . '/apply')) ?>" target="_blank" rel="nofollow noopener noreferrer">Apply on <?= e($job['source_name'] ?: 'the employer\'s site') ?> &#8599;</a>
+      <?php if ($native): ?><?php if ($applied): ?><a class="btn btn-ghost !py-3 !px-6" href="<?= e(url('/student/applications')) ?>">&#10003; Applied. View status</a><?php else: ?><a class="btn btn-accent !py-3 !px-6" href="<?= e(url('/student/jobs/' . $job['slug'] . '/apply')) ?>">Apply now</a><?php endif; ?><?php else: ?><a class="btn btn-accent !py-3 !px-6" href="<?= e(url('/jobs/' . $job['slug'] . '/apply')) ?>" target="_blank" rel="nofollow noopener noreferrer">Apply on <?= e($job['source_name'] ?: 'the employer\'s site') ?> &#8599;</a><?php endif; ?>
       <?php if (Auth::check('student')): ?>
         <form method="post" action="<?= e(url('/student/jobs/' . $job['id'] . '/save')) ?>"><?= csrf_field() ?><button class="btn btn-ghost !py-3" type="submit"><?= $isSaved ? '&#9829; Saved' : '&#9825; Save' ?></button></form>
       <?php else: ?><a class="btn btn-ghost !py-3" href="<?= e(url('/login')) ?>">&#9825; Save</a><?php endif; ?>
@@ -38,8 +39,9 @@ $daysLeft = $job['deadline_at'] ? (int) ceil((strtotime($job['deadline_at'] . ' 
 
       <section aria-labelledby="sum-h"><h2 id="sum-h" class="text-2xl font-extrabold">About this job</h2>
         <p class="mt-3 text-lg leading-relaxed"><?= e($job['summary'] ?: 'See the full posting on the employer\'s page for details.') ?></p>
-        <?php if ($job['ai_status'] === 'done'): ?><p class="mt-2 text-xs text-slate-500">Summary written by AI from the original posting. Check the full details on the employer's page before you apply.</p><?php endif; ?>
-        <a class="btn btn-ghost mt-4" href="<?= e(url('/jobs/' . $job['slug'] . '/apply')) ?>" target="_blank" rel="nofollow noopener noreferrer">Read the full posting &#8599;</a></section>
+        <?php if ($native && trim((string) $job['description']) !== ''): ?><div class="mt-4 prose-lite"><?= render_content((string) $job['description']) ?></div><?php endif; ?>
+        <?php if (!$native && $job['ai_status'] === 'done'): ?><p class="mt-2 text-xs text-slate-500">Summary written by AI from the original posting. Check the full details on the employer's page before you apply.</p><?php endif; ?>
+        <?php if (!$native): ?><a class="btn btn-ghost mt-4" href="<?= e(url('/jobs/' . $job['slug'] . '/apply')) ?>" target="_blank" rel="nofollow noopener noreferrer">Read the full posting &#8599;</a><?php endif; ?></section>
 
       <?php if ($skills): ?><section><h2 class="text-xl font-extrabold">Skills mentioned</h2><div class="jchips"><?php foreach ($skills as $s): ?><span class="jchip"><?= e($s) ?></span><?php endforeach; ?></div></section><?php endif; ?>
 
@@ -71,7 +73,7 @@ $daysLeft = $job['deadline_at'] ? (int) ceil((strtotime($job['deadline_at'] . ' 
           <?php if ($L['level'][$job['experience_level']]): ?><div class="flex justify-between gap-3"><dt class="text-slate-500">Level</dt><dd class="font-semibold text-right"><?= e($L['level'][$job['experience_level']]) ?></dd></div><?php endif; ?>
           <?php if ($L['type'][$job['employment_type']]): ?><div class="flex justify-between gap-3"><dt class="text-slate-500">Type</dt><dd class="font-semibold text-right"><?= e($L['type'][$job['employment_type']]) ?></dd></div><?php endif; ?>
           <div class="flex justify-between gap-3"><dt class="text-slate-500">Source</dt><dd class="font-semibold text-right"><?= e($job['source_name'] ?: 'AfriBolt') ?></dd></div></dl>
-        <a class="btn btn-accent w-full mt-4" href="<?= e(url('/jobs/' . $job['slug'] . '/apply')) ?>" target="_blank" rel="nofollow noopener noreferrer">Apply now &#8599;</a></div>
+        <?php if ($native): ?><?php if ($applied): ?><a class="btn btn-ghost w-full mt-4" href="<?= e(url('/student/applications')) ?>">&#10003; Applied. View status</a><?php else: ?><a class="btn btn-accent w-full mt-4" href="<?= e(url('/student/jobs/' . $job['slug'] . '/apply')) ?>">Apply now</a><?php endif; ?><?php else: ?><a class="btn btn-accent w-full mt-4" href="<?= e(url('/jobs/' . $job['slug'] . '/apply')) ?>" target="_blank" rel="nofollow noopener noreferrer">Apply now &#8599;</a><?php endif; ?></div>
       <?php if ($similar): ?><div><h2 class="font-bold text-lg mb-2">Similar jobs</h2><div class="space-y-3"><?php foreach ($similar as $s): ?>
         <a class="block bg-white border rounded-lg p-3 hover:border-bolt" href="<?= e(url('/jobs/' . $s['slug'])) ?>"><p class="font-bold leading-snug"><?= e($s['title']) ?></p><p class="text-sm text-slate-600"><?= e((string) $s['company']) ?><?= $s['state'] ? ' &middot; ' . e($s['state']) : '' ?></p></a><?php endforeach; ?></div></div><?php endif; ?>
     </aside>

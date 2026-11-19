@@ -10,6 +10,7 @@ $active = count(array_diff_key($f, ['sort' => 1, 'q' => 1, 'state' => 1, 'catego
   <div class="max-w-6xl mx-auto px-4 py-10 md:py-12">
     <h1 class="text-3xl md:text-5xl font-extrabold">Find your next job in Nigeria</h1>
     <p class="mt-2 text-slate-200 max-w-2xl">Fresh openings from trusted sources, tidied up and checked for scams. Learn the skills you need on AfriBolt, then apply.</p>
+    <p class="mt-2 text-sm text-slate-300">Hiring? <a class="underline font-bold text-white" href="<?= e(url('/employers')) ?>">Post a job on Afribolt</a>.</p>
     <form method="get" role="search" class="mt-6 grid md:grid-cols-[1fr_14rem_auto] gap-3 bg-white rounded-lg p-3">
       <?= $keep(['q', 'state']) ?>
       <div><label class="sr-only" for="jq">Job title, skill or company</label><input class="field" id="jq" type="search" name="q" value="<?= e($g('q')) ?>" placeholder="Job title, skill or company"></div>

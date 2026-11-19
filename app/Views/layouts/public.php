@@ -63,7 +63,7 @@ $cur = fn(string $href) => $path === $href || str_starts_with($path, $href . '/'
   <div class="max-w-6xl mx-auto px-4 py-10 grid gap-8 md:grid-cols-3">
     <div><p class="font-display font-extrabold text-white text-xl">AfriBolt Technologies</p><p class="italic mt-1">&hellip;Dream big, Achieve big</p></div>
     <div><p class="font-bold text-white mb-2">Explore</p><ul class="space-y-1">
-      <li><a href="<?= e(url('/courses')) ?>">Courses</a></li><li><a href="<?= e(url('/jobs')) ?>">Jobs</a></li><li><a href="<?= e(url('/career-accelerator')) ?>">Career Accelerator</a></li>
+      <li><a href="<?= e(url('/courses')) ?>">Courses</a></li><li><a href="<?= e(url('/jobs')) ?>">Jobs</a></li><li><a href="<?= e(url('/career-accelerator')) ?>">Career Accelerator</a></li><li><a href="<?= e(url('/employers')) ?>">For employers</a></li>
       <li><a href="<?= e(url('/faq')) ?>">FAQs</a></li><li><a href="<?= e(url('/contact')) ?>">Contact</a></li></ul></div>
     <div><p class="font-bold text-white mb-2">Policies</p><ul class="space-y-1">
       <li><a href="<?= e(url('/privacy')) ?>">Privacy</a></li><li><a href="<?= e(url('/terms')) ?>">Terms</a></li><li><a href="<?= e(url('/refund-policy')) ?>">Refunds &amp; cancellation</a></li></ul></div>

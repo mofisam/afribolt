@@ -1,7 +1,8 @@
 <?php
 use App\Controllers\Admin as A;
 use App\Controllers\Instructor as I;
-use App\Middleware\{AdminAuth, InstructorAuth};
+use App\Controllers\Employer as E;
+use App\Middleware\{AdminAuth, EmployerAuth, InstructorAuth};
 
 // ---- Admin ----
 $router->get('/admin/login', [A\AuthController::class, 'show']);
@@ -64,6 +65,15 @@ $router->group(['prefix' => '/admin', 'middleware' => [AdminAuth::class]], funct
     $r->post('/career-launch/{id}/status', [A\CareerLaunchController::class, 'status']);
     $r->post('/career-launch/{id}/stage', [A\CareerLaunchController::class, 'stage']);
     $r->post('/career-launch/{id}/delete', [A\CareerLaunchController::class, 'delete']);
+
+    // Employers (company accounts that post jobs)
+    $r->get('/employers', [A\EmployerController::class, 'index']);
+    $r->post('/employers/settings', [A\EmployerController::class, 'settings']);
+    $r->get('/employers/documents/{docId}', [A\EmployerController::class, 'document']);
+    $r->get('/employers/{id}', [A\EmployerController::class, 'show']);
+    $r->post('/employers/{id}/decision', [A\EmployerController::class, 'decision']);
+    $r->post('/employers/{id}/suspend', [A\EmployerController::class, 'suspend']);
+    $r->post('/employers/{id}/reactivate', [A\EmployerController::class, 'reactivate']);
 
     // Jobs board
     $r->get('/jobs', [A\JobController::class, 'index']);
@@ -165,6 +175,31 @@ $router->group(['prefix' => '/admin', 'middleware' => [AdminAuth::class]], funct
     $r->post('/admin-users', [A\AdminUserController::class, 'store']);
     $r->get('/admin-users/{id}/edit', [A\AdminUserController::class, 'edit']);
     $r->post('/admin-users/{id}', [A\AdminUserController::class, 'update']);
+});
+
+// ---- Employer portal (companies post jobs; students apply) ----
+$router->get('/employers', [E\AuthController::class, 'landing']);
+$router->get('/employer/login', [E\AuthController::class, 'showLogin']);
+$router->post('/employer/login', [E\AuthController::class, 'login']);
+$router->get('/employer/register', [E\AuthController::class, 'showRegister']);
+$router->post('/employer/register', [E\AuthController::class, 'register']);
+$router->group(['prefix' => '/employer', 'middleware' => [EmployerAuth::class]], function ($r) {
+    $r->get('/', [E\DashboardController::class, 'index']);
+    $r->post('/logout', [E\AuthController::class, 'logout']);
+    $r->get('/verification', [E\VerificationController::class, 'show']);
+    $r->post('/verification/profile', [E\VerificationController::class, 'saveProfile']);
+    $r->post('/verification/documents', [E\VerificationController::class, 'upload']);
+    $r->post('/verification/documents/{id}/delete', [E\VerificationController::class, 'deleteDocument']);
+    $r->post('/verification/submit', [E\VerificationController::class, 'submit']);
+    $r->get('/jobs', [E\JobController::class, 'index']);
+    $r->get('/jobs/create', [E\JobController::class, 'create']);
+    $r->post('/jobs', [E\JobController::class, 'store']);
+    $r->get('/jobs/{id}/edit', [E\JobController::class, 'edit']);
+    $r->post('/jobs/{id}/toggle', [E\JobController::class, 'toggle']);
+    $r->get('/jobs/{id}/applicants', [E\JobController::class, 'applicants']);
+    $r->post('/jobs/{id}', [E\JobController::class, 'update']);
+    $r->post('/applications/{id}/status', [E\JobController::class, 'applicationStatus']);
+    $r->get('/applications/{id}/cv', [E\JobController::class, 'cv']);
 });
 
 // ---- Instructor portal ----

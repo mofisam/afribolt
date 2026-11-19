@@ -2,16 +2,18 @@
 namespace App\Core;
 
 use App\Models\AdminUser;
+use App\Models\Employer;
 use App\Models\Instructor;
 use App\Models\User;
 
-/** Three separate guards: student (users), admin (admin_users), instructor (instructors). */
+/** Separate guards: student (users), admin (admin_users), instructor (instructors), employer (employers). */
 final class Auth
 {
     private const MODELS = [
         'student'    => User::class,
         'admin'      => AdminUser::class,
         'instructor' => Instructor::class,
+        'employer'   => Employer::class,
     ];
     private static array $cache = [];
 
