@@ -32,3 +32,48 @@
     collapseBtn.setAttribute('aria-pressed', 'true'); collapseBtn.setAttribute('aria-label', 'Expand sidebar');
   }
 })();
+
+
+// Admin tables: "more options" (three dots) menu. Opens next to the button, closes on outside click, scroll or Escape; arrow keys move between items.
+(() => {
+  let openBtn = null;
+  const menuOf = (btn) => document.getElementById(btn.getAttribute('aria-controls'));
+  const close = (refocus) => {
+    if (!openBtn) return;
+    const m = menuOf(openBtn); if (m) m.hidden = true;
+    openBtn.setAttribute('aria-expanded', 'false');
+    if (refocus) openBtn.focus();
+    openBtn = null;
+  };
+  const place = (btn, menu) => {
+    menu.hidden = false;
+    const r = btn.getBoundingClientRect(), mw = menu.offsetWidth, mh = menu.offsetHeight;
+    let top = r.bottom + 4;
+    if (top + mh > window.innerHeight - 8 && r.top - mh - 4 > 8) top = r.top - mh - 4; // flip above when near the bottom
+    const left = Math.min(Math.max(8, r.right - mw), window.innerWidth - mw - 8);
+    menu.style.top = top + 'px'; menu.style.left = left + 'px';
+  };
+  document.addEventListener('click', (e) => {
+    const t = e.target.closest('[data-menu-toggle]');
+    if (t) {
+      e.preventDefault();
+      const same = openBtn === t; close(false);
+      if (!same) { const m = menuOf(t); if (m) { place(t, m); t.setAttribute('aria-expanded', 'true'); openBtn = t; m.querySelector('[role="menuitem"]')?.focus(); } }
+      return;
+    }
+    if (openBtn && !e.target.closest('.act-menu')) close(false);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (!openBtn) return;
+    if (e.key === 'Escape') { e.preventDefault(); close(true); return; }
+    if (e.key === 'Tab') { close(false); return; }
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      const items = [...menuOf(openBtn).querySelectorAll('[role="menuitem"]')];
+      const i = items.indexOf(document.activeElement);
+      items[e.key === 'ArrowDown' ? (i + 1) % items.length : (i - 1 + items.length) % items.length]?.focus();
+    }
+  });
+  window.addEventListener('resize', () => close(false));
+  window.addEventListener('scroll', () => close(false), true);
+})();

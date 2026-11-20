@@ -50,7 +50,7 @@ class CareerLaunchController extends BaseAdminController
                     if ((int) $r['stage'] < 7) { $a[] = ['label' => 'Stage done: next stage', 'url' => url('/admin/career-launch/' . $r['id'] . '/stage'), 'post' => true, 'fields' => ['dir' => 'next'], 'confirm' => 'Mark the current stage as done and move this student to the next one? They will be notified.']; }
                     if ((int) $r['stage'] > 2) { $a[] = ['label' => 'Back one stage', 'url' => url('/admin/career-launch/' . $r['id'] . '/stage'), 'post' => true, 'fields' => ['dir' => 'back'], 'confirm' => 'Move this student back one stage?']; }
                 }
-                $a[] = ['label' => 'Delete', 'url' => url('/admin/career-launch/' . $r['id'] . '/delete'), 'post' => true, 'confirm' => 'Delete this registration permanently?'];
+                $a[] = ['label' => 'Delete', 'icon' => 'delete', 'danger' => true, 'url' => url('/admin/career-launch/' . $r['id'] . '/delete'), 'post' => true, 'confirm' => 'Delete this registration permanently?'];
                 return $a;
             },
         ]);

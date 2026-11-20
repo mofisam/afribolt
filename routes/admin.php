@@ -66,6 +66,20 @@ $router->group(['prefix' => '/admin', 'middleware' => [AdminAuth::class]], funct
     $r->post('/career-launch/{id}/stage', [A\CareerLaunchController::class, 'stage']);
     $r->post('/career-launch/{id}/delete', [A\CareerLaunchController::class, 'delete']);
 
+    // Delete actions (each checks that nothing still depends on the record)
+    $r->post('/sessions/{id}/delete', [A\SessionController::class, 'delete']);
+    $r->post('/courses/{id}/delete', [A\CourseController::class, 'delete']);
+    $r->post('/cohorts/{id}/delete', [A\CohortController::class, 'delete']);
+    $r->post('/admin-users/{id}/delete', [A\AdminUserController::class, 'delete']);
+    $r->post('/instructors/{id}/delete', [A\InstructorController::class, 'delete']);
+    $r->post('/categories/{id}/delete', [A\CategoryController::class, 'delete']);
+    $r->post('/announcements/{id}/delete', [A\AnnouncementController::class, 'delete']);
+    $r->post('/jobs/{id}/delete', [A\JobController::class, 'delete']);
+    $r->post('/reviews/{id}/delete', [A\ReviewController::class, 'delete']);
+    $r->post('/students/{id}/delete', [A\StudentController::class, 'delete']);
+    $r->post('/employers/{id}/delete', [A\EmployerController::class, 'delete']);
+    $r->post('/email-logs/{id}/delete', [A\EmailLogController::class, 'delete']);
+
     // Employers (company accounts that post jobs)
     $r->get('/employers', [A\EmployerController::class, 'index']);
     $r->post('/employers/settings', [A\EmployerController::class, 'settings']);

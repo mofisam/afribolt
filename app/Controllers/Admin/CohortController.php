@@ -134,8 +134,9 @@ class CohortController extends BaseAdminController
                 ['label' => 'Status', 'html' => true, 'render' => fn($r) => $this->badge($r['status'])],
             ],
             'actions' => fn($r) => [
-                ['label' => 'Manage', 'url' => url('/admin/cohorts/' . $r['id'])],
-                ['label' => 'Edit', 'url' => url('/admin/cohorts/' . $r['id'] . '/edit')],
+                ['label' => 'Manage', 'primary' => true, 'url' => url('/admin/cohorts/' . $r['id'])],
+                ['label' => 'Edit', 'primary' => true, 'url' => url('/admin/cohorts/' . $r['id'] . '/edit')],
+                ['label' => 'Delete', 'icon' => 'delete', 'danger' => true, 'url' => url('/admin/cohorts/' . $r['id'] . '/delete'), 'post' => true, 'confirm' => 'Delete this cohort and its class sessions? Only possible when nobody has enrolled.'],
             ],
         ]);
     }
@@ -232,5 +233,24 @@ class CohortController extends BaseAdminController
         Database::execute('DELETE FROM cohort_instructors WHERE cohort_id = ? AND instructor_id = ?', [(int) $c['id'], (int) $instructorId]);
         $this->audit('cohort.instructor_removed', 'cohort', (int) $c['id'], ['instructor_id' => (int) $instructorId], []);
         $this->done('Instructor removed.', '/admin/cohorts/' . $c['id']);
+    }
+
+    /** Delete a cohort nobody enrolled in (its sessions and instructor assignments go with it). */
+    public function delete(string $id): void
+    {
+        $c = Cohort::find((int) $id) ?? $this->abort(404);
+        $back = '/admin/cohorts';
+        $enrolled = (int) Database::value('SELECT COUNT(*) FROM enrolments WHERE cohort_id = ?', [(int) $c['id']]);
+        if ($enrolled > 0) {
+            $this->done('This cohort has ' . $enrolled . ' enrolment(s), so it cannot be deleted. Close or cancel it instead.', $back, 'error');
+        }
+        $this->audit('cohort.deleted', 'cohort', (int) $c['id'], null, ['name' => $c['cohort_name'] ?? null, 'code' => $c['cohort_code'] ?? null]);
+        $this->tryDelete(function () use ($c) {
+            Database::transaction(function () use ($c) {
+                Database::execute('DELETE FROM class_sessions WHERE cohort_id = ?', [(int) $c['id']]);
+                Database::execute('DELETE FROM cohort_instructors WHERE cohort_id = ?', [(int) $c['id']]);
+                Cohort::delete((int) $c['id']);
+            });
+        }, 'Cohort deleted.', $back, 'Close it instead.');
     }
 }

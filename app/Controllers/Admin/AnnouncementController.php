@@ -76,6 +76,7 @@ class AnnouncementController extends BaseAdminController
                 $a = [['label' => 'Edit', 'url' => url('/admin/announcements/' . $r['id'] . '/edit')]];
                 if ($r['status'] !== 'published') { $a[] = ['label' => 'Publish', 'url' => url('/admin/announcements/' . $r['id'] . '/status'), 'post' => true, 'fields' => ['status' => 'published']]; }
                 if ($r['status'] !== 'archived') { $a[] = ['label' => 'Archive', 'url' => url('/admin/announcements/' . $r['id'] . '/status'), 'post' => true, 'fields' => ['status' => 'archived']]; }
+                $a[] = ['label' => 'Delete', 'icon' => 'delete', 'danger' => true, 'url' => url('/admin/announcements/' . $r['id'] . '/delete'), 'post' => true, 'confirm' => 'Delete this announcement permanently?'];
                 return $a;
             },
         ]);
@@ -124,5 +125,12 @@ class AnnouncementController extends BaseAdminController
         $this->audit('announcement.status_changed', 'announcement', (int) $a['id'], ['status' => $a['status']], ['status' => $new]);
         $this->notifyIfFirstPublish($a, ['status' => $new, 'cohort_id' => $a['cohort_id'], 'visibility' => $a['visibility'], 'title' => $a['title'], 'body' => $a['body']], (int) $a['id']);
         $this->done("Announcement {$new}.", '/admin/announcements');
+    }
+
+    public function delete(string $id): void
+    {
+        $a = Announcement::find((int) $id) ?? $this->abort(404);
+        $this->audit('announcement.deleted', 'announcement', (int) $a['id'], null, ['title' => $a['title']]);
+        $this->tryDelete(fn() => Announcement::delete((int) $a['id']), 'Announcement deleted.', '/admin/announcements', 'Archive it instead.');
     }
 }

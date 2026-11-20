@@ -96,6 +96,7 @@ class JobController extends BaseAdminController
                 if ($r['status'] !== 'published') { $a[] = ['label' => 'Publish', 'url' => url('/admin/jobs/' . $r['id'] . '/status'), 'post' => true, 'fields' => ['status' => 'published']]; }
                 else { $a[] = ['label' => 'Hide', 'url' => url('/admin/jobs/' . $r['id'] . '/status'), 'post' => true, 'fields' => ['status' => 'hidden']]; }
                 if (!in_array($r['status'], ['rejected', 'published'], true)) { $a[] = ['label' => 'Reject', 'url' => url('/admin/jobs/' . $r['id'] . '/status'), 'post' => true, 'fields' => ['status' => 'rejected']]; }
+                $a[] = ['label' => 'Delete', 'icon' => 'delete', 'danger' => true, 'url' => url('/admin/jobs/' . $r['id'] . '/delete'), 'post' => true, 'confirm' => 'Delete this job permanently, including any applications on it? If it was collected from a source it may be collected again; use Reject to keep it out.'];
                 return $a;
             },
         ]);
@@ -211,5 +212,16 @@ class JobController extends BaseAdminController
         JobReport::update((int) $r['id'], ['status' => 'resolved']);
         $this->audit('job_report.resolved', 'job_report', (int) $r['id'], null, ['action' => $this->request->post('action')]);
         $this->done('Report resolved.', '/admin/jobs/reports');
+    }
+
+    public function delete(string $id): void
+    {
+        $j = Job::find((int) $id) ?? $this->abort(404);
+        $this->audit('job.deleted', 'job', (int) $j['id'], null, ['title' => $j['title'], 'company' => $j['company']]);
+        $cvs = array_column(Database::all('SELECT cv_stored_name FROM job_applications WHERE job_id = ? AND cv_stored_name IS NOT NULL', [(int) $j['id']]), 'cv_stored_name');
+        $this->tryDelete(function () use ($j, $cvs) {
+            Job::delete((int) $j['id']);
+            foreach ($cvs as $f) { (new \App\Services\PrivateUploadService())->delete('applications', $f); }
+        }, 'Job deleted.', '/admin/jobs', 'Reject it instead.');
     }
 }

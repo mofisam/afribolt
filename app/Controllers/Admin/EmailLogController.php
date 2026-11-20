@@ -31,7 +31,8 @@ class EmailLogController extends BaseAdminController
                 ['label' => 'Last error', 'render' => fn($r) => $r['last_error'] ?? ''],
             ],
             'actions' => fn($r) => [['label' => 'Resend', 'icon' => 'send', 'show_label' => true, 'url' => url('/admin/email-logs/' . $r['id'] . '/resend'), 'post' => true,
-                'confirm' => 'Send this email again to ' . $r['recipient_email'] . ' now?']],
+                'confirm' => 'Send this email again to ' . $r['recipient_email'] . ' now?'],
+                ['label' => 'Delete', 'icon' => 'delete', 'danger' => true, 'url' => url('/admin/email-logs/' . $r['id'] . '/delete'), 'post' => true, 'confirm' => 'Delete this log entry? It will not be sent.']],
         ]);
     }
 
@@ -63,5 +64,14 @@ class EmailLogController extends BaseAdminController
         $e = EmailLog::find((int) $id) ?? $this->abort(404);
         if ($e['status'] === 'failed') { EmailLog::update((int) $e['id'], ['status' => 'queued', 'attempts' => 0, 'last_error' => null]); }
         $this->done('Email re-queued.', '/admin/email-logs');
+    }
+
+    public function delete(string $id): void
+    {
+        $e = EmailLog::find((int) $id) ?? $this->abort(404);
+        $this->tryDelete(function () use ($e) {
+            EmailLog::delete((int) $e['id']);
+            @unlink(base_path('storage/cache/email_' . (int) $e['id'] . '.html'));
+        }, 'Email log entry deleted.', '/admin/email-logs');
     }
 }

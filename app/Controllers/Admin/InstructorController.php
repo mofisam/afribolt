@@ -42,7 +42,8 @@ class InstructorController extends BaseAdminController
                 ['label' => 'Cohorts', 'render' => fn($r) => $r['cohort_count']],
                 ['label' => 'Status', 'html' => true, 'render' => fn($r) => $this->badge($r['account_status'])],
             ],
-            'actions' => fn($r) => [['label' => 'Edit', 'url' => url('/admin/instructors/' . $r['id'] . '/edit')]],
+            'actions' => fn($r) => [['label' => 'Edit', 'url' => url('/admin/instructors/' . $r['id'] . '/edit')],
+                ['label' => 'Delete', 'icon' => 'delete', 'danger' => true, 'url' => url('/admin/instructors/' . $r['id'] . '/delete'), 'post' => true, 'confirm' => 'Delete this instructor?']],
             'intro' => 'Assign instructors to cohorts from the cohort page.',
         ]);
     }
@@ -89,5 +90,15 @@ class InstructorController extends BaseAdminController
         if ($d['password']) { $row['password_hash'] = password_hash($d['password'], PASSWORD_DEFAULT); }
         Instructor::update((int) $i['id'], $row);
         $this->done('Instructor updated.', '/admin/instructors');
+    }
+
+    public function delete(string $id): void
+    {
+        $i = Instructor::find((int) $id) ?? $this->abort(404);
+        $back = '/admin/instructors';
+        $n = (int) \App\Core\Database::value('SELECT COUNT(*) FROM cohort_instructors WHERE instructor_id = ?', [(int) $i['id']]);
+        if ($n > 0) { $this->done('This instructor is assigned to ' . $n . ' cohort(s). Remove them from those cohorts first, or set their status to Suspended.', $back, 'error'); }
+        $this->audit('instructor.deleted', 'instructor', (int) $i['id'], null, ['email' => $i['email']]);
+        $this->tryDelete(fn() => Instructor::delete((int) $i['id']), 'Instructor deleted.', $back, 'Set their status to Suspended instead (Edit).');
     }
 }

@@ -49,7 +49,8 @@ class AdminUserController extends BaseAdminController
                 ['label' => 'Status', 'html' => true, 'render' => fn($r) => $this->badge($r['account_status'])],
                 ['label' => 'Last login', 'render' => fn($r) => $r['last_login_at'] ? local_date($r['last_login_at']) : 'Never'],
             ],
-            'actions' => fn($r) => [['label' => 'Edit', 'url' => url('/admin/admin-users/' . $r['id'] . '/edit')]],
+            'actions' => fn($r) => [['label' => 'Edit', 'url' => url('/admin/admin-users/' . $r['id'] . '/edit')],
+                (int) $r['id'] === $this->adminId() ? null : ['label' => 'Delete', 'icon' => 'delete', 'danger' => true, 'url' => url('/admin/admin-users/' . $r['id'] . '/delete'), 'post' => true, 'confirm' => 'Delete this admin user? They lose access immediately.']],
         ]);
     }
 
@@ -97,5 +98,18 @@ class AdminUserController extends BaseAdminController
         if ($d['password']) { $row['password_hash'] = password_hash($d['password'], PASSWORD_DEFAULT); }
         AdminUser::update((int) $a['id'], $row);
         $this->done('Admin updated.', '/admin/admin-users');
+    }
+
+    public function delete(string $id): void
+    {
+        $a = AdminUser::find((int) $id) ?? $this->abort(404);
+        $back = '/admin/admin-users';
+        if ((int) $a['id'] === $this->adminId()) { $this->done('You cannot delete your own account.', $back, 'error'); }
+        if ($a['admin_role'] === 'super_admin' && $a['account_status'] === 'active'
+            && (int) \App\Core\Database::value("SELECT COUNT(*) FROM admin_users WHERE admin_role = 'super_admin' AND account_status = 'active' AND id <> ?", [(int) $a['id']]) === 0) {
+            $this->done('This is the last active super admin. Create another one first.', $back, 'error');
+        }
+        $this->audit('admin_user.deleted', 'admin_user', (int) $a['id'], null, ['email' => $a['email'], 'role' => $a['admin_role']]);
+        $this->tryDelete(fn() => AdminUser::delete((int) $a['id']), 'Admin user deleted.', $back, 'They have created records, so set their status to Suspended instead (Edit).');
     }
 }

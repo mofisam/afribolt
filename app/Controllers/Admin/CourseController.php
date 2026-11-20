@@ -92,8 +92,8 @@ class CourseController extends BaseAdminController
                 ['label' => 'Updated', 'render' => fn($r) => local_date($r['updated_at'], null, 'j M Y')],
             ],
             'actions' => function ($r) {
-                $a = [['label' => 'Edit', 'icon' => 'edit', 'url' => url('/admin/courses/' . $r['id'] . '/edit')]];
-                if ($r['delivery_mode'] !== 'live') { $a[] = ['label' => 'Curriculum', 'icon' => 'curriculum', 'url' => url('/admin/courses/' . $r['id'] . '/curriculum')]; }
+                $a = [['label' => 'Edit', 'icon' => 'edit', 'primary' => true, 'url' => url('/admin/courses/' . $r['id'] . '/edit')]];
+                if ($r['delivery_mode'] !== 'live') { $a[] = ['label' => 'Curriculum', 'icon' => 'curriculum', 'primary' => true, 'url' => url('/admin/courses/' . $r['id'] . '/curriculum')]; }
                 if ($r['status'] === 'published') {
                     $a[] = ['label' => 'View on site', 'icon' => 'view', 'url' => url('/courses/' . $r['slug'])];
                     $a[] = ['label' => 'Unpublish', 'icon' => 'unpublish', 'url' => url('/admin/courses/' . $r['id'] . '/status'), 'post' => true, 'fields' => ['status' => 'draft']];
@@ -104,6 +104,7 @@ class CourseController extends BaseAdminController
                 if ($r['status'] !== 'archived') {
                     $a[] = ['label' => 'Archive', 'icon' => 'archive', 'url' => url('/admin/courses/' . $r['id'] . '/status'), 'post' => true, 'fields' => ['status' => 'archived'], 'confirm' => 'Archive this course? It will disappear from the site.'];
                 }
+                $a[] = ['label' => 'Delete', 'icon' => 'delete', 'danger' => true, 'url' => url('/admin/courses/' . $r['id'] . '/delete'), 'post' => true, 'confirm' => 'Delete this course? It disappears from the site and the admin. Only possible when it has no learners or cohorts.'];
                 return $a;
             },
         ]);
@@ -226,5 +227,19 @@ class CourseController extends BaseAdminController
         \App\Services\CourseCatalogService::refresh($newId);
         $this->audit('course.duplicated', 'course', $newId, null, ['from' => (int) $c['id']]);
         $this->done('Draft copy created. Review it, then publish when ready.', '/admin/courses/' . $newId . '/edit');
+    }
+
+    /** Delete (hide) a course nobody has joined. Courses with learners or cohorts must be archived instead. */
+    public function delete(string $id): void
+    {
+        $c = Course::find((int) $id) ?? $this->abort(404);
+        $back = '/admin/courses';
+        $learners = (int) \App\Core\Database::value('SELECT COUNT(*) FROM course_access WHERE course_id = ?', [(int) $c['id']]);
+        $cohorts = (int) \App\Core\Database::value('SELECT COUNT(*) FROM cohorts WHERE course_id = ? AND deleted_at IS NULL', [(int) $c['id']]);
+        if ($learners || $cohorts) {
+            $this->done('This course has ' . ($learners ? $learners . ' learner(s)' : '') . ($learners && $cohorts ? ' and ' : '') . ($cohorts ? $cohorts . ' cohort(s)' : '') . ', so it cannot be deleted. Archive it instead to hide it from the site.', $back, 'error');
+        }
+        $this->audit('course.deleted', 'course', (int) $c['id'], null, ['title' => $c['title']]);
+        $this->tryDelete(function () use ($c) { Course::update((int) $c['id'], ['status' => 'archived']); Course::delete((int) $c['id']); }, 'Course "' . $c['title'] . '" deleted.', $back);
     }
 }

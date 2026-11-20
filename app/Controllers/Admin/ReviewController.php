@@ -32,7 +32,8 @@ class ReviewController extends BaseAdminController
                 ['label' => 'Date', 'render' => fn($r) => local_date($r['created_at'], null, 'j M Y')],
                 ['label' => 'Status', 'html' => true, 'render' => fn($r) => $this->badge($r['status'] === 'hidden' ? 'closed' : 'published') ],
             ],
-            'actions' => fn($r) => [['label' => $r['status'] === 'published' ? 'Hide' : 'Show', 'url' => url('/admin/reviews/' . $r['id'] . '/status'), 'post' => true, 'fields' => ['status' => $r['status'] === 'published' ? 'hidden' : 'published']]],
+            'actions' => fn($r) => [['label' => $r['status'] === 'published' ? 'Hide' : 'Show', 'url' => url('/admin/reviews/' . $r['id'] . '/status'), 'post' => true, 'fields' => ['status' => $r['status'] === 'published' ? 'hidden' : 'published']],
+                ['label' => 'Delete', 'icon' => 'delete', 'danger' => true, 'url' => url('/admin/reviews/' . $r['id'] . '/delete'), 'post' => true, 'confirm' => 'Delete this review permanently?']],
         ]);
     }
 
@@ -44,5 +45,12 @@ class ReviewController extends BaseAdminController
         $this->audit('review.' . $new, 'course_review', (int) $r['id'], ['status' => $r['status']], ['status' => $new]);
         CourseCatalogService::refresh((int) $r['course_id']);
         $this->done("Review {$new}.", '/admin/reviews');
+    }
+
+    public function delete(string $id): void
+    {
+        $r = CourseReview::find((int) $id) ?? $this->abort(404);
+        $this->audit('review.deleted', 'course_review', (int) $r['id'], null, ['course_id' => (int) $r['course_id']]);
+        $this->tryDelete(function () use ($r) { CourseReview::delete((int) $r['id']); CourseCatalogService::refresh((int) $r['course_id']); }, 'Review deleted.', '/admin/reviews', 'Hide it instead.');
     }
 }

@@ -51,6 +51,7 @@ class EmployerController extends BaseAdminController
                 $a[] = $r['account_status'] === 'active'
                     ? ['label' => 'Suspend', 'url' => url('/admin/employers/' . $r['id'] . '/suspend'), 'post' => true, 'confirm' => 'Suspend this company? They will be logged out and all their live jobs will be hidden.']
                     : ['label' => 'Reactivate', 'url' => url('/admin/employers/' . $r['id'] . '/reactivate'), 'post' => true];
+                $a[] = ['label' => 'Delete', 'icon' => 'delete', 'danger' => true, 'url' => url('/admin/employers/' . $r['id'] . '/delete'), 'post' => true, 'confirm' => 'Delete this company, ALL its jobs, their applications, and its uploaded documents? This cannot be undone. Suspend it instead if you only want to stop it posting.'];
                 return $a;
             },
         ]);
@@ -124,5 +125,22 @@ class EmployerController extends BaseAdminController
         Employer::update((int) $e['id'], ['account_status' => 'active']);
         $this->audit('employer.reactivated', 'employer', (int) $e['id'], null, []);
         $this->done($e['company_name'] . ' reactivated. Their hidden jobs stay hidden until they reopen them.', '/admin/employers');
+    }
+
+    public function delete(string $id): void
+    {
+        $e = Employer::find((int) $id) ?? $this->abort(404);
+        $docs = array_column(Database::all('SELECT stored_name FROM employer_documents WHERE employer_id = ?', [(int) $e['id']]), 'stored_name');
+        $cvs = array_column(Database::all('SELECT a.cv_stored_name FROM job_applications a JOIN jobs j ON j.id = a.job_id WHERE j.employer_id = ? AND a.cv_stored_name IS NOT NULL', [(int) $e['id']]), 'cv_stored_name');
+        $this->audit('employer.deleted', 'employer', (int) $e['id'], null, ['company' => $e['company_name'], 'email' => $e['email']]);
+        $this->tryDelete(function () use ($e, $docs, $cvs) {
+            Database::transaction(function () use ($e) {
+                Database::execute('DELETE FROM jobs WHERE employer_id = ?', [(int) $e['id']]); // applications go with the jobs
+                Database::execute('DELETE FROM employers WHERE id = ?', [(int) $e['id']]);     // documents rows go with the company
+            });
+            $files = new PrivateUploadService();
+            foreach ($docs as $f) { $files->delete('employer_docs', $f); }
+            foreach ($cvs as $f) { $files->delete('applications', $f); }
+        }, 'Company deleted.', '/admin/employers', 'Suspend it instead.');
     }
 }

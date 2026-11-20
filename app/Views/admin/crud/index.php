@@ -26,6 +26,20 @@ $actBtn = function (array $a) use ($actIcons): string {
     return '<svg viewBox="0 0 24 24" aria-hidden="true">' . $actIcons[$a['icon']] . '</svg>' . (!empty($a['show_label']) ? '<span>' . $label . '</span>' : '<span class="sr-only">' . $label . '</span>');
 };
 $actClass = fn(array $a) => !empty($a['icon']) && isset($actIcons[$a['icon']]) ? 'act' . (!empty($a['show_label']) ? ' act-label' : '') . (in_array($a['icon'], ['archive', 'delete', 'unpublish'], true) ? ' act-warn' : '') : 'underline text-bolt-dark mr-3';
+
+// "More options" menu: items that are not primary go into a (three dots) menu to save space in the row.
+$isDanger = fn(array $a) => !empty($a['danger']) || in_array($a['icon'] ?? '', ['delete', 'archive', 'unpublish'], true);
+$menuItem = function (array $a) use ($actIcons, $isDanger): string {
+    $svg = (!empty($a['icon']) && isset($actIcons[$a['icon']])) ? '<svg viewBox="0 0 24 24" aria-hidden="true">' . $actIcons[$a['icon']] . '</svg>' : '';
+    $cls = 'act-item' . ($isDanger($a) ? ' danger' : '');
+    $inner = $svg . '<span>' . e($a['label']) . '</span>';
+    if (empty($a['post'])) { return '<a role="menuitem" class="' . $cls . '" href="' . e($a['url']) . '">' . $inner . '</a>'; }
+    $fields = '';
+    foreach (($a['fields'] ?? []) as $fk => $fv) { $fields .= '<input type="hidden" name="' . e($fk) . '" value="' . e($fv) . '">'; }
+    return '<form method="post" action="' . e($a['url']) . '" role="none"' . (!empty($a['confirm']) ? ' onsubmit="return confirm(' . e(json_encode($a['confirm'])) . ')"' : '') . '>'
+        . csrf_field() . $fields . '<button type="submit" role="menuitem" class="' . $cls . '">' . $inner . '</button></form>';
+};
+$menuSeq = 0;
 ?>
 <div class="flex flex-wrap items-center justify-between gap-3">
   <h1 class="text-3xl font-extrabold"><?= e($title) ?></h1>
@@ -61,14 +75,35 @@ $actClass = fn(array $a) => !empty($a['icon']) && isset($actIcons[$a['icon']]) ?
         <?php foreach ($columns as $c): $out = $c['render']($row); ?>
           <td class="p-3"><?= !empty($c['html']) ? $out : e($out) ?></td>
         <?php endforeach; ?>
-        <?php if ($actions): ?><td class="p-3 whitespace-nowrap text-right"><div class="inline-flex items-center justify-end gap-1.5 flex-wrap">
-          <?php foreach ($actions($row) as $a): ?>
+        <?php if ($actions):
+          $acts = array_values(array_filter($actions($row)));
+          $primary = [];
+          foreach ($acts as $i => $a) { if (!empty($a['primary'])) { $primary[] = $i; } }
+          if (count($acts) <= 1) { $primary = array_keys($acts); }       // a single action stays visible
+          elseif (!$primary) { $primary = [0]; }                         // otherwise the first one stays visible
+          $inline = array_intersect_key($acts, array_flip($primary));
+          $menu = array_values(array_diff_key($acts, array_flip($primary)));
+          usort($menu, fn($x, $y) => (int) $isDanger($x) <=> (int) $isDanger($y)); // risky actions last
+          $first = $columns[0] ?? null;
+          $rowName = $first ? mb_substr(trim(strip_tags((string) ($first['render'] ?? fn($r) => '')($row))), 0, 60) : '';
+        ?><td class="p-3 whitespace-nowrap text-right"><div class="inline-flex items-center justify-end gap-1.5">
+          <?php foreach ($inline as $a): ?>
             <?php if (!empty($a['post'])): ?>
               <form method="post" action="<?= e($a['url']) ?>" class="inline" <?= !empty($a['confirm']) ? 'onsubmit="return confirm(' . e(json_encode($a['confirm'])) . ')"' : '' ?>>
                 <?= csrf_field() ?><?php foreach (($a['fields'] ?? []) as $fk => $fv): ?><input type="hidden" name="<?= e($fk) ?>" value="<?= e($fv) ?>"><?php endforeach; ?>
                 <button class="<?= $actClass($a) ?>" type="submit" title="<?= e($a['label']) ?>"><?= $actBtn($a) ?></button></form>
             <?php else: ?><a class="<?= $actClass($a) ?>" href="<?= e($a['url']) ?>" title="<?= e($a['label']) ?>"><?= $actBtn($a) ?></a><?php endif; ?>
-          <?php endforeach; ?></div></td><?php endif; ?>
+          <?php endforeach; ?>
+          <?php if ($menu): $mid = 'am-' . (++$menuSeq); $sepDone = false; ?>
+            <div class="act-wrap">
+              <button type="button" class="act" data-menu-toggle aria-haspopup="menu" aria-expanded="false" aria-controls="<?= $mid ?>" title="More options">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1.4" fill="currentColor"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><circle cx="12" cy="19" r="1.4" fill="currentColor"/></svg>
+                <span class="sr-only">More options<?= $rowName !== '' ? ' for ' . e($rowName) : '' ?></span></button>
+              <div class="act-menu" id="<?= $mid ?>" role="menu" hidden>
+                <?php foreach ($menu as $k => $a): if ($isDanger($a) && !$sepDone) { $sepDone = true; if ($k > 0) { echo '<div class="act-sep" role="separator"></div>'; } } ?><?= $menuItem($a) ?><?php endforeach; ?>
+              </div>
+            </div>
+          <?php endif; ?></div></td><?php endif; ?>
       </tr>
     <?php endforeach; if (!$rows): ?>
       <tr><td class="p-6 text-slate-500" colspan="<?= count($columns) + ($actions ? 1 : 0) ?>">Nothing here yet.</td></tr>

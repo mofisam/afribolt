@@ -90,6 +90,7 @@ class SessionController extends BaseAdminController
                             'confirm' => in_array($st, ['postponed', 'cancelled'], true) ? 'This notifies enrolled students. Continue?' : null];
                     }
                 }
+                $a[] = ['label' => 'Delete', 'icon' => 'delete', 'danger' => true, 'url' => url('/admin/sessions/' . $r['id'] . '/delete'), 'post' => true, 'confirm' => 'Delete this class session permanently? Students are NOT told. To notify them, use Cancel instead.'];
                 return $a;
             },
         ]);
@@ -192,5 +193,18 @@ class SessionController extends BaseAdminController
         if (!isset(self::STATUSES[$new])) { $this->abort(422); }
         (new ScheduleService())->setStatus((int) $s['id'], $new);
         $this->done('Session marked ' . $new . '.', '/admin/sessions?cohort_id=' . $s['cohort_id']);
+    }
+
+    /** Remove a class session that should not exist (e.g. created by mistake). Sessions with attendance records are kept. */
+    public function delete(string $id): void
+    {
+        $s = ClassSession::find((int) $id) ?? $this->abort(404);
+        $back = '/admin/sessions';
+        if ($s['status'] === 'live') { $this->done('A class that is live right now cannot be deleted.', $back, 'error'); }
+        if ((int) Database::value('SELECT COUNT(*) FROM session_attendance WHERE session_id = ?', [(int) $s['id']]) > 0) {
+            $this->done('Attendance was already recorded for this class, so it cannot be deleted. Mark it Cancelled instead.', $back, 'error');
+        }
+        $this->audit('session.deleted', 'class_session', (int) $s['id'], null, ['cohort_id' => (int) $s['cohort_id'], 'status' => $s['status']]);
+        $this->tryDelete(fn() => ClassSession::delete((int) $s['id']), 'Class session deleted.', $back, 'Mark it Cancelled instead.');
     }
 }

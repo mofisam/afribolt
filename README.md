@@ -185,3 +185,7 @@ All emails share `app/Views/layouts/email.php`. Templates in `app/Views/emails/`
 - Admin > Employers has a switch: review every employer job before it goes live, or let verified companies publish instantly.
 - Students apply on Afribolt (note + optional PDF/Word CV) and follow their applications at `/student/applications`. Employers see applicants, download CVs (private storage) and set a status (shortlisted, interview, not selected, hired); students are notified.
 - Make sure `storage/private_uploads` is writable by the web server and is NOT inside the public web root. Run migration 010.
+
+## Admin tables: more-options menu and Delete
+
+Admin tables show the main action(s) as buttons and put the rest behind a three-dots menu. Every delete checks that nothing still depends on the record and explains what to do instead when it cannot be removed (for example: archive a course that has learners, cancel a class that has attendance, suspend a student who has payments). Payments, enrolments, learner access and audit logs are never deletable, because they are your financial records.

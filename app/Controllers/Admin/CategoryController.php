@@ -37,6 +37,7 @@ class CategoryController extends BaseAdminController
             'actions' => fn($r) => [
                 ['label' => 'Edit', 'url' => url('/admin/categories/' . $r['id'] . '/edit')],
                 ['label' => $r['status'] === 'active' ? 'Deactivate' : 'Activate', 'url' => url('/admin/categories/' . $r['id'] . '/toggle'), 'post' => true],
+                ['label' => 'Delete', 'icon' => 'delete', 'danger' => true, 'url' => url('/admin/categories/' . $r['id'] . '/delete'), 'post' => true, 'confirm' => 'Delete this category?'],
             ],
         ]);
     }
@@ -84,5 +85,15 @@ class CategoryController extends BaseAdminController
         CourseCategory::update((int) $cat['id'], ['status' => $new]);
         $this->audit('category.status_changed', 'course_category', (int) $cat['id'], ['status' => $cat['status']], ['status' => $new]);
         $this->done("Category {$new}.", '/admin/categories');
+    }
+
+    public function delete(string $id): void
+    {
+        $c = CourseCategory::find((int) $id) ?? $this->abort(404);
+        $back = '/admin/categories';
+        $n = (int) \App\Core\Database::value('SELECT COUNT(*) FROM courses WHERE category_id = ? AND deleted_at IS NULL', [(int) $c['id']]);
+        if ($n > 0) { $this->done($n . ' course(s) use this category. Move them to another category first, or just deactivate it.', $back, 'error'); }
+        $this->audit('category.deleted', 'course_category', (int) $c['id'], null, ['name' => $c['name'] ?? null]);
+        $this->tryDelete(fn() => CourseCategory::delete((int) $c['id']), 'Category deleted.', $back, 'Deactivate it instead.');
     }
 }

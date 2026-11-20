@@ -35,6 +35,22 @@ abstract class BaseAdminController extends Controller
         $this->view($view, $data, 'admin');
     }
 
+    /**
+     * Run a delete. If the database refuses because other records still depend on the row (error 1451),
+     * explain that on screen instead of crashing. $hint says what to do instead (e.g. "Archive it").
+     */
+    protected function tryDelete(callable $work, string $okMessage, string $back, string $hint = ''): never
+    {
+        try { $work(); }
+        catch (\mysqli_sql_exception $e) {
+            if (in_array((int) $e->getCode(), [1451, 1217], true)) {
+                $this->done('This cannot be deleted because other records still depend on it.' . ($hint !== '' ? ' ' . $hint : ''), $back, 'error');
+            }
+            throw $e;
+        }
+        $this->done($okMessage, $back);
+    }
+
     protected function done(string $message, string $to, string $type = 'success'): never
     {
         Session::flash($type, $message);

@@ -89,9 +89,9 @@ TXT;
                 ['label' => 'Run now', 'url' => url('/admin/job-sources/' . $r['id'] . '/run'), 'post' => true],
                 ['label' => $r['is_enabled'] ? 'Disable' : 'Enable', 'url' => url('/admin/job-sources/' . $r['id'] . '/toggle'), 'post' => true],
                 ['label' => 'Edit', 'url' => url('/admin/job-sources/' . $r['id'] . '/edit')],
-                ['label' => 'Delete', 'url' => url('/admin/job-sources/' . $r['id'] . '/delete'), 'post' => true,
+                ['label' => 'Delete', 'icon' => 'delete', 'danger' => true, 'url' => url('/admin/job-sources/' . $r['id'] . '/delete'), 'post' => true,
                     'confirm' => 'Delete the source ' . $r['name'] . '? Jobs already collected from it stay on the board (they just lose their link to the source). This cannot be undone.'],
-                ['label' => 'Delete + its jobs', 'url' => url('/admin/job-sources/' . $r['id'] . '/delete'), 'post' => true, 'fields' => ['with_jobs' => '1'],
+                ['label' => 'Delete + its jobs', 'icon' => 'delete', 'danger' => true, 'url' => url('/admin/job-sources/' . $r['id'] . '/delete'), 'post' => true, 'fields' => ['with_jobs' => '1'],
                     'confirm' => 'Delete the source ' . $r['name'] . ' AND all ' . (int) Database::value('SELECT COUNT(*) FROM jobs WHERE source_id = ?', [(int) $r['id']]) . ' jobs collected from it (including saved-job entries by learners)? This cannot be undone.'],
             ],
         ]);
