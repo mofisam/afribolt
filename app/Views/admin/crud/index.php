@@ -17,6 +17,8 @@ $actIcons = [
   'publish' => '<path d="M20 6L9 17l-5-5"/>',
   'duplicate' => '<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
   'archive' => '<path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/>',
+  'manage' => '<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3"/><path d="M1 14h6M9 8h6M17 16h6"/>',
+  'hide' => '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><path d="M1 1l22 22"/>',
   'send' => '<path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/>',
   'delete' => '<path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>',
 ];
@@ -77,10 +79,17 @@ $menuSeq = 0;
         <?php endforeach; ?>
         <?php if ($actions):
           $acts = array_values(array_filter($actions($row)));
-          $primary = [];
-          foreach ($acts as $i => $a) { if (!empty($a['primary'])) { $primary[] = $i; } }
-          if (count($acts) <= 1) { $primary = array_keys($acts); }       // a single action stays visible
-          elseif (!$primary) { $primary = [0]; }                         // otherwise the first one stays visible
+          // Edit and View/Open always show as icon buttons
+          $auto = ['edit' => 'edit', 'view' => 'view', 'open' => 'view', 'view on site' => 'view'];
+          $acts = array_map(function ($a) use ($auto) { if (empty($a['icon']) && isset($auto[strtolower($a['label'])])) { $a['icon'] = $auto[strtolower($a['label'])]; } return $a; }, $acts);
+          // 'primary' => true stays visible, 'menu' => true goes into the ⋮ menu. If nothing is flagged,
+          // a single action stays visible, otherwise the first one does.
+          $primary = []; $flagged = false;
+          foreach ($acts as $i => $a) {
+              if (!empty($a['primary'])) { $primary[] = $i; }
+              if (!empty($a['primary']) || !empty($a['menu'])) { $flagged = true; }
+          }
+          if (!$flagged) { $primary = count($acts) <= 1 ? array_keys($acts) : [0]; }
           $inline = array_intersect_key($acts, array_flip($primary));
           $menu = array_values(array_diff_key($acts, array_flip($primary)));
           usort($menu, fn($x, $y) => (int) $isDanger($x) <=> (int) $isDanger($y)); // risky actions last

@@ -134,7 +134,7 @@ class CohortController extends BaseAdminController
                 ['label' => 'Status', 'html' => true, 'render' => fn($r) => $this->badge($r['status'])],
             ],
             'actions' => fn($r) => [
-                ['label' => 'Manage', 'primary' => true, 'url' => url('/admin/cohorts/' . $r['id'])],
+                ['label' => 'Manage', 'icon' => 'manage', 'menu' => true, 'url' => url('/admin/cohorts/' . $r['id'])],
                 ['label' => 'Edit', 'primary' => true, 'url' => url('/admin/cohorts/' . $r['id'] . '/edit')],
                 ['label' => 'Delete', 'icon' => 'delete', 'danger' => true, 'url' => url('/admin/cohorts/' . $r['id'] . '/delete'), 'post' => true, 'confirm' => 'Delete this cohort and its class sessions? Only possible when nobody has enrolled.'],
             ],

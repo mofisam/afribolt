@@ -32,7 +32,7 @@ class ReviewController extends BaseAdminController
                 ['label' => 'Date', 'render' => fn($r) => local_date($r['created_at'], null, 'j M Y')],
                 ['label' => 'Status', 'html' => true, 'render' => fn($r) => $this->badge($r['status'] === 'hidden' ? 'closed' : 'published') ],
             ],
-            'actions' => fn($r) => [['label' => $r['status'] === 'published' ? 'Hide' : 'Show', 'url' => url('/admin/reviews/' . $r['id'] . '/status'), 'post' => true, 'fields' => ['status' => $r['status'] === 'published' ? 'hidden' : 'published']],
+            'actions' => fn($r) => [['label' => $r['status'] === 'published' ? 'Hide' : 'Show', 'icon' => $r['status'] === 'published' ? 'hide' : 'view', 'menu' => true, 'url' => url('/admin/reviews/' . $r['id'] . '/status'), 'post' => true, 'fields' => ['status' => $r['status'] === 'published' ? 'hidden' : 'published']],
                 ['label' => 'Delete', 'icon' => 'delete', 'danger' => true, 'url' => url('/admin/reviews/' . $r['id'] . '/delete'), 'post' => true, 'confirm' => 'Delete this review permanently?']],
         ]);
     }

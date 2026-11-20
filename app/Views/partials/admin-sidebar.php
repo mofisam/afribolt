@@ -75,7 +75,7 @@ $roleLabel = ['super_admin' => 'Super admin', 'admin' => 'Admin', 'content_manag
 $initials = strtoupper(substr($admin['first_name'], 0, 1) . substr($admin['last_name'], 0, 1));
 ?>
 <div class="adm-brand">
-  <a class="adm-logo" href="<?= e(url('/admin')) ?>" aria-label="Admin dashboard">
+  <a class="adm-logo" href="<?= e(url('/')) ?>" target="_blank" rel="noopener" title="View public site" aria-label="View public site (opens in a new tab)">
     <span class="adm-logo-full"><?= App\Core\View::partial('partials/logo', ['width' => 120]) ?></span>
     <span class="hidden adm-logo-mini font-display font-extrabold text-bolt">AB</span>
   </a>
@@ -105,7 +105,6 @@ $initials = strtoupper(substr($admin['first_name'], 0, 1) . substr($admin['last_
     <span class="adm-avatar" aria-hidden="true"><?= e($initials) ?></span>
     <div class="adm-user-meta min-w-0"><p class="font-bold text-white truncate"><?= e($admin['first_name'] . ' ' . $admin['last_name']) ?></p><p class="text-xs text-slate-400"><?= e($roleLabel) ?></p></div>
   </div>
-  <a class="adm-link" href="<?= e(url('/')) ?>" target="_blank" rel="noopener" title="View public site"><svg class="adm-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6M10 14L21 3"/></svg><span class="adm-label">View site</span></a>
   <form method="post" action="<?= e(url('/admin/logout')) ?>"><?= csrf_field() ?>
     <button class="adm-link w-full text-left" type="submit" title="Log out"><svg class="adm-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg><span class="adm-label">Log out</span></button>
   </form>
